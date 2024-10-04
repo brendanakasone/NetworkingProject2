@@ -7,8 +7,6 @@
 *
 *////////////////////////////////////////////////////////////
 
-/* GIT TEST */
-
 /* Included libraries */
 
 #include <stdio.h>		    /* for printf() and fprintf() */
