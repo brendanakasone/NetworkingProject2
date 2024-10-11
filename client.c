@@ -20,7 +20,7 @@
 /* Constants */
 #define RCVBUFSIZE 512		    /* The receive buffer size */
 #define SNDBUFSIZE 512		    /* The send buffer size */
-#define MDLEN 32
+#define MDLEN 128
 
 /* The main function */
 int main(int argc, char *argv[])
@@ -61,16 +61,35 @@ int main(int argc, char *argv[])
         printf("connect failed\n");
     };
 
-    /* Send the string to the server */
+    // START OF SENDING/RECEIVING MESSAGES: 
+
+    /* receiving menu options */
+    int bytesReceived = recv(clientSock, rcvBuf, RCVBUFSIZE - 1, 0);
+    rcvBuf[bytesReceived] = '\0';
+    for(i = 0; i < MDLEN; i++) printf("%c", rcvBuf[i]);
+    printf("\n");
+
+    /* getting user menu selection from terminal */
+    char temp[25];
+    scanf("%s", temp);
+    char *menuOption = temp;
+
+    /* send user menu selection to server */
+    send(clientSock, menuOption, strlen(menuOption), 0);
+
+    /* Send name to server */
     if(send(clientSock, studentName, strlen(studentName), 0) < 0){
         printf("send failed\n");
     };
 
-    /* Receive and print response from the server */
-    int bytesReceived = recv(clientSock, rcvBuf, RCVBUFSIZE - 1, 0);
-    rcvBuf[bytesReceived] = '\0';
+    // CLEAR MEMORY 
+    memset(rcvBuf, 0, RCVBUFSIZE);
+
+    /* Receive transformed name from server */
+    bytesReceived = recv(clientSock, rcvBuf, RCVBUFSIZE - 1, 0);
 
     printf("%s\n", studentName);
+    /* Printing out transformed name from server */
     printf("Transformed input is: ");
     for(i = 0; i < MDLEN; i++) printf("%02x", rcvBuf[i]);
     printf("\n");

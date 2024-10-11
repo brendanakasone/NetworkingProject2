@@ -67,8 +67,23 @@ int main(int argc, char *argv[])
         printf("accept failed\n");
       };
 
-	    /* Extract Your Name from the packet, store in nameBuf */
+
+      // START OF SENDING/RECEIVING MESSAGES
+
+      // menu options being sent to client
+      char *message = "Please pick one of the following options:\n1. List Files\n2. Diff\n3. Pull\n4. Leave";
+      send(clientSock, message, strlen(message), 0);
+
+	    /* Get user option from client */
       int bytesReceived = recv(clientSock, nameBuf, BUFSIZE - 1, 0); 
+      nameBuf[bytesReceived] = '\0'; 
+      for(int i = 0; i < BUFSIZE; i++) printf("%c", nameBuf[i]);
+      printf("\n");
+
+      /* clear buf */
+      memset(nameBuf, 0, BUFSIZE);
+
+      recv(clientSock, nameBuf, BUFSIZE - 1, 0);
       nameBuf[bytesReceived] = '\0'; 
 
       /* Run this and return the final value in md_value to client */
@@ -82,7 +97,7 @@ int main(int argc, char *argv[])
         EVP_DigestFinal_ex(mdctx, md_value, &md_len);
         EVP_MD_CTX_destroy(mdctx);
 
-      /* Return md_value to client */
+        /* Return md_value to client */
         send(clientSock, md_value, md_len, 0);
 
         close(clientSock);
