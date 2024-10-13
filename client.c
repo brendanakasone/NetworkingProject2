@@ -16,6 +16,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <openssl/evp.h>	    /* for OpenSSL EVP digest libraries/SHA256 */
+#include <file.h>
 
 /* Constants */
 #define RCVBUFSIZE 512		    /* The receive buffer size */
