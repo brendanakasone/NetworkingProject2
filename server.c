@@ -59,8 +59,10 @@ int main(int argc, char *argv[])
       printf("listen failed\n");
     };
 
+    int leave = 0;
+
     /* Loop server forever*/
-    while(1)
+    while(leave == 0)
     {
       clntLen = sizeof(changeClntAddr);
 	    /* Accept incoming connection */
@@ -98,7 +100,7 @@ int main(int argc, char *argv[])
       else if (strcmp(nameBuf, "Leave") == 0)
       {
         printf("Successfully received Leave\n");
-
+        leave = 1;
       }
       else 
       {
@@ -111,10 +113,11 @@ int main(int argc, char *argv[])
 
       // printf("This is the size of nameBuf (array size): %zu bytes.\n", nameBufSize);
       // printf("This is the actual length of data in nameBuf: %zu bytes.\n", actualNameBufLength);
-      // printf("This is the size of listFiles: %zu bytes.\n", listFilesSize);
+      // printf("Tshis is the size of listFiles: %zu bytes.\n", listFilesSize);
 
-      close(clientSock);
+    
     }
+    close(clientSock);
     close(serverSock);
 
     return 0;
