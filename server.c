@@ -83,22 +83,22 @@ int main(int argc, char *argv[])
       /* clear buf */
       memset(nameBuf, 0, BUFSIZE);
 
-      recv(clientSock, nameBuf, BUFSIZE - 1, 0);
-      nameBuf[bytesReceived] = '\0'; 
+      // recv(clientSock, nameBuf, BUFSIZE - 1, 0);
+      // nameBuf[bytesReceived] = '\0'; 
 
       /* Run this and return the final value in md_value to client */
       /* Takes the client name and changes it */
       /* Students should NOT touch this code */
-        OpenSSL_add_all_digests();
-        md = EVP_get_digestbyname("SHA256");
-        mdctx = EVP_MD_CTX_create();
-        EVP_DigestInit_ex(mdctx, md, NULL);
-        EVP_DigestUpdate(mdctx, nameBuf, strlen(nameBuf));
-        EVP_DigestFinal_ex(mdctx, md_value, &md_len);
-        EVP_MD_CTX_destroy(mdctx);
+      // OpenSSL_add_all_digests();
+      // md = EVP_get_digestbyname("SHA256");
+      // mdctx = EVP_MD_CTX_create();
+      // EVP_DigestInit_ex(mdctx, md, NULL);
+      // EVP_DigestUpdate(mdctx, nameBuf, strlen(nameBuf));
+      // EVP_DigestFinal_ex(mdctx, md_value, &md_len);
+      // EVP_MD_CTX_destroy(mdctx);
 
-        /* Return md_value to client */
-        send(clientSock, md_value, md_len, 0);
+      // /* Return md_value to client */
+      // send(clientSock, md_value, md_len, 0);
 
         close(clientSock);
     }
