@@ -72,7 +72,7 @@ int main(int argc, char *argv[])
     /* getting user menu selection from terminal */
     char temp[25];
     fgets(temp, sizeof(temp), stdin);
-    temp[25] = '\0';
+    temp[24] = '\0';
     char *menuOption = temp;
 
     /* send user menu selection to server */
