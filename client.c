@@ -80,23 +80,6 @@ int main(int argc, char *argv[])
     /* send user menu selection to server */
     send(clientSock, menuOption, strlen(menuOption), 0);
 
-    /* Send name to server */
-    // if(send(clientSock, studentName, strlen(studentName), 0) < 0){
-    //     printf("send failed\n");
-    // };
-
-    // CLEAR MEMORY 
-    memset(rcvBuf, 0, RCVBUFSIZE);
-
-    /* Receive transformed name from server */
-    // bytesReceived = recv(clientSock, rcvBuf, RCVBUFSIZE - 1, 0);
-
-    // printf("%s\n", studentName);
-    /* Printing out transformed name from server */
-    // printf("Transformed input is: ");
-    // for(i = 0; i < MDLEN; i++) printf("%02x", rcvBuf[i]);
-    // printf("\n");
-
     close(clientSock);
 
     return 0;

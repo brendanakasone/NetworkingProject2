@@ -81,27 +81,39 @@ int main(int argc, char *argv[])
       for(int i = 0; i < BUFSIZE; i++) printf("%c", nameBuf[i]);
       printf("\n");
 
-      /* clear buf */
-      memset(nameBuf, 0, BUFSIZE);
+      nameBuf[strcspn(nameBuf, "\n")] = 0; 
 
-      // recv(clientSock, nameBuf, BUFSIZE - 1, 0);
-      // nameBuf[bytesReceived] = '\0'; 
+      if (strcmp(nameBuf, "List Files") == 0) 
+      {
+        printf("Successfully received List Files\n");
+      } 
+      else if (strcmp(nameBuf, "Diff") == 0)
+      {
+        printf("Successfully received Diff\n");
+      }
+      else if (strcmp(nameBuf, "Pull") == 0)
+      {
+        printf("Successfully received Pull\n");
+      }
+      else if (strcmp(nameBuf, "Leave") == 0)
+      {
+        printf("Successfully received Leave\n");
 
-      /* Run this and return the final value in md_value to client */
-      /* Takes the client name and changes it */
-      /* Students should NOT touch this code */
-      // OpenSSL_add_all_digests();
-      // md = EVP_get_digestbyname("SHA256");
-      // mdctx = EVP_MD_CTX_create();
-      // EVP_DigestInit_ex(mdctx, md, NULL);
-      // EVP_DigestUpdate(mdctx, nameBuf, strlen(nameBuf));
-      // EVP_DigestFinal_ex(mdctx, md_value, &md_len);
-      // EVP_MD_CTX_destroy(mdctx);
+      }
+      else 
+      {
+        printf("Please retry!\n");
+      }
 
-      // /* Return md_value to client */
-      // send(clientSock, md_value, md_len, 0);
+      // size_t nameBufSize = sizeof(nameBuf);
+      // size_t listFilesSize = sizeof(listFiles);
+      // size_t actualNameBufLength = strlen(nameBuf); // Length of actual data in nameBuf
 
-        close(clientSock);
+      // printf("This is the size of nameBuf (array size): %zu bytes.\n", nameBufSize);
+      // printf("This is the actual length of data in nameBuf: %zu bytes.\n", actualNameBufLength);
+      // printf("This is the size of listFiles: %zu bytes.\n", listFilesSize);
+
+      close(clientSock);
     }
     close(serverSock);
 
