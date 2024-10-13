@@ -16,7 +16,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <openssl/evp.h>	    /* for OpenSSL EVP digest libraries/SHA256 */
-#include <file.h>
+#include "file.h"
 
 /* Constants */
 #define RCVBUFSIZE 512		    /* The receive buffer size */
@@ -54,8 +54,8 @@ int main(int argc, char *argv[])
     /* Construct the server address structure */
     memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
-    serv_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
-    serv_addr.sin_port = htons(8080);
+    serv_addr.sin_addr.s_addr = inet_addr("127.0.0.2");
+    serv_addr.sin_port = htons(8084);
 
     /* Establish connecction to the server */
     if(connect(clientSock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0){

@@ -16,7 +16,7 @@
 #include <unistd.h>	  /* for close() */
 #include <string.h>	  /* support any string ops */
 #include <openssl/evp.h>  /* for OpenSSL EVP digest libraries/SHA256 */
-#include <file.h>
+#include "file.h"
 
 #define RCVBUFSIZE 512		/* The receive buffer size */
 #define SNDBUFSIZE 512		/* The send buffer size */
@@ -47,7 +47,7 @@ int main(int argc, char *argv[])
     memset(&changeServAddr, 0, sizeof(changeServAddr));
     changeServAddr.sin_family = AF_INET;
     changeServAddr.sin_addr.s_addr = htonl(INADDR_ANY);
-    changeServAddr.sin_port = htons(8080);
+    changeServAddr.sin_port = htons(8084);
     
     /* Bind to local address structure */
     if (bind(serverSock, (struct sockaddr *)&changeServAddr, sizeof(changeServAddr)) < 0){

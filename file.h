@@ -1,4 +1,4 @@
 struct file{
-    char name[];
+    char *name;
     long contents; 
 };
