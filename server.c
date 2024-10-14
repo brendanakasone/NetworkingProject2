@@ -38,6 +38,26 @@ int main(int argc, char *argv[])
     const EVP_MD *md;				/* Digest data structure declaration */
     int md_len;					/* Digest data structure size tracking */
 
+    /* File Storage */
+    int fileStorageSize = 5; // hard coded for now 
+    file* fileStorage = (file*)malloc(fileStorageSize * sizeof(file));
+
+    if (fileStorage == NULL){
+      printf("memory allocation failed\n");
+    }
+
+    // hard code for now 
+    for (int i = 0; i < fileStorageSize; i++){
+      snprintf(fileStorage[i].name, sizeof(fileStorage[i].name), "File %d", i + 1);
+      fileStorage[i].contents = 100 + i;
+    }
+
+    // making sure the dynamic array works 
+    printf("\nDynamic array checking:\n");
+    for(int i = 0; i < fileStorageSize; i++){
+      printf("Names of files: %s, Contents: %ld\n", fileStorage[i].name, fileStorage[i].contents);
+    }
+
     /* Create a new TCP socket*/
     if ((serverSock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0){
         printf("socket failed\n");
@@ -69,7 +89,6 @@ int main(int argc, char *argv[])
       if((clientSock = accept(serverSock, (struct sockaddr *)&changeClntAddr, &clntLen)) < 0){
         printf("accept failed\n");
       };
-
 
       // START OF SENDING/RECEIVING MESSAGES
 
@@ -117,6 +136,7 @@ int main(int argc, char *argv[])
 
     
     }
+    free(fileStorage);
     close(clientSock);
     close(serverSock);
 

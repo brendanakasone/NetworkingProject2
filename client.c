@@ -36,6 +36,26 @@ int main(int argc, char *argv[])
     
     int i;			    /* Counter Value */
 
+    /* File Storage */
+    int fileStorageSize = 5; // hard coded for now 
+    file* fileStorage = (file*)malloc(fileStorageSize * sizeof(file));
+
+    if (fileStorage == NULL){
+      printf("memory allocation failed\n");
+    }
+
+    // hard code for now 
+    for (int i = 0; i < fileStorageSize; i++){
+      snprintf(fileStorage[i].name, sizeof(fileStorage[i].name), "File %d", i + 2);
+      fileStorage[i].contents = 99 + i;
+    }
+
+    // making sure the dynamic array works 
+    printf("\nDynamic array checking:\n");
+    for(int i = 0; i < fileStorageSize; i++){
+      printf("Names of files: %s, Contents: %ld\n", fileStorage[i].name, fileStorage[i].contents);
+    }
+
     /* Get the Student Name from the command line */
     if (argc != 2) 
     {
