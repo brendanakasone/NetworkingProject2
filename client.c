@@ -59,8 +59,8 @@ int main(int argc, char *argv[])
     /* Get the Student Name from the command line */
     if (argc != 2) 
     {
-	printf("Incorrect input format. The correct format is:\n\tnameChanger your_name\n");
-	exit(1);
+      printf("Incorrect input format. The correct format is:\n\tnameChanger your_name\n");
+      exit(1);
     }
     studentName = argv[1];
     memset(&sndBuf, 0, RCVBUFSIZE);
@@ -99,6 +99,13 @@ int main(int argc, char *argv[])
 
     /* send user menu selection to server */
     send(clientSock, menuOption, strlen(menuOption), 0);
+
+    memset(rcvBuf, 0, RCVBUFSIZE);
+
+    recv(clientSock, rcvBuf, RCVBUFSIZE - 1, 0);
+    printf("List of Files:\n");
+    for(i = 0; i < MDLEN; i++) printf("%c", rcvBuf[i]);
+    printf("\n");
 
     close(clientSock);
 

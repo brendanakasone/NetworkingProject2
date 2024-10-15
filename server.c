@@ -106,6 +106,18 @@ int main(int argc, char *argv[])
 
       if (strcmp(nameBuf, "List Files") == 0) 
       {
+        size_t sizeOfFileNames = 0;
+        for(int i = 0; i < fileStorageSize; i++){
+          sizeOfFileNames = sizeOfFileNames + strlen(fileStorage[i].name + 5);
+        }
+        char *allFileNames = (char *)malloc(sizeOfFileNames * sizeof(char));
+        strcpy(allFileNames, fileStorage[0].name);
+        for(int i = 1; i < fileStorageSize; i++){
+          strcat(allFileNames, "\n");
+          strcat(allFileNames, fileStorage[i].name);
+        }
+
+        send(clientSock, allFileNames, strlen(allFileNames), 0);
         printf("Successfully received List Files\n");
       } 
       else if (strcmp(nameBuf, "Diff") == 0)
