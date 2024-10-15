@@ -16,11 +16,33 @@
 #include <unistd.h>	  /* for close() */
 #include <string.h>	  /* support any string ops */
 #include <openssl/evp.h>  /* for OpenSSL EVP digest libraries/SHA256 */
-#include "file.h"
 
 #define RCVBUFSIZE 512		/* The receive buffer size */
 #define SNDBUFSIZE 512		/* The send buffer size */
 #define BUFSIZE 40		/* Your name can be as many as 40 chars*/
+
+typedef struct{
+    char name[50];
+    long contents; 
+    FILE *fileptr;
+} file;
+
+void listFilesFunc(int fileStorageSize, file* fileStorage, int clientSock){
+  // sending server files to client 
+  size_t sizeOfFileNames = 0;
+  for(int i = 0; i < fileStorageSize; i++){
+    sizeOfFileNames = sizeOfFileNames + strlen(fileStorage[i].name + 5);
+  }
+  char *allFileNames = (char *)malloc(sizeOfFileNames * sizeof(char));
+  strcpy(allFileNames, fileStorage[0].name);
+  for(int i = 1; i < fileStorageSize; i++){
+    strcat(allFileNames, "\n");
+    strcat(allFileNames, fileStorage[i].name);
+  }
+
+  send(clientSock, allFileNames, strlen(allFileNames), 0);
+  printf("Successfully sent server files\n");
+} 
 
 /* The main function */
 int main(int argc, char *argv[])
@@ -53,7 +75,7 @@ int main(int argc, char *argv[])
     }
 
     // making sure the dynamic array works 
-    printf("\nDynamic array checking:\n");
+    printf("\nDynamic array checking (Server files):\n");
     for(int i = 0; i < fileStorageSize; i++){
       printf("Names of files: %s, Contents: %ld\n", fileStorage[i].name, fileStorage[i].contents);
     }
@@ -67,7 +89,7 @@ int main(int argc, char *argv[])
     memset(&changeServAddr, 0, sizeof(changeServAddr));
     changeServAddr.sin_family = AF_INET;
     changeServAddr.sin_addr.s_addr = htonl(INADDR_ANY);
-    changeServAddr.sin_port = htons(8084);
+    changeServAddr.sin_port = htons(8086);
     
     /* Bind to local address structure */
     if (bind(serverSock, (struct sockaddr *)&changeServAddr, sizeof(changeServAddr)) < 0){
@@ -106,22 +128,11 @@ int main(int argc, char *argv[])
 
       if (strcmp(nameBuf, "List Files") == 0) 
       {
-        size_t sizeOfFileNames = 0;
-        for(int i = 0; i < fileStorageSize; i++){
-          sizeOfFileNames = sizeOfFileNames + strlen(fileStorage[i].name + 5);
-        }
-        char *allFileNames = (char *)malloc(sizeOfFileNames * sizeof(char));
-        strcpy(allFileNames, fileStorage[0].name);
-        for(int i = 1; i < fileStorageSize; i++){
-          strcat(allFileNames, "\n");
-          strcat(allFileNames, fileStorage[i].name);
-        }
-
-        send(clientSock, allFileNames, strlen(allFileNames), 0);
-        printf("Successfully received List Files\n");
+        listFilesFunc(fileStorageSize, fileStorage, clientSock);
       } 
       else if (strcmp(nameBuf, "Diff") == 0)
       {
+        listFilesFunc(fileStorageSize, fileStorage, clientSock);
         printf("Successfully received Diff\n");
       }
       else if (strcmp(nameBuf, "Pull") == 0)

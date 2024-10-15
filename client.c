@@ -16,12 +16,25 @@
 #include <unistd.h>
 #include <string.h>
 #include <openssl/evp.h>	    /* for OpenSSL EVP digest libraries/SHA256 */
-#include "file.h"
 
 /* Constants */
 #define RCVBUFSIZE 512		    /* The receive buffer size */
 #define SNDBUFSIZE 512		    /* The send buffer size */
 #define MDLEN 128
+
+typedef struct{
+    char name[50];
+    long contents; 
+    FILE *fileptr;
+} file;
+
+void listFilesFunc(int clientSock, char rcvBuf[RCVBUFSIZE]){
+  // receiving list files 
+  recv(clientSock, rcvBuf, RCVBUFSIZE - 1, 0);
+  printf("List of Server Files:\n");
+  for(int i = 0; i < MDLEN; i++) printf("%c", rcvBuf[i]);
+  printf("\n");
+} 
 
 /* The main function */
 int main(int argc, char *argv[])
@@ -51,7 +64,7 @@ int main(int argc, char *argv[])
     }
 
     // making sure the dynamic array works 
-    printf("\nDynamic array checking:\n");
+    printf("\nDynamic array checking (Client Files):\n");
     for(int i = 0; i < fileStorageSize; i++){
       printf("Names of files: %s, Contents: %ld\n", fileStorage[i].name, fileStorage[i].contents);
     }
@@ -74,8 +87,8 @@ int main(int argc, char *argv[])
     /* Construct the server address structure */
     memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
-    serv_addr.sin_addr.s_addr = inet_addr("127.0.0.2");
-    serv_addr.sin_port = htons(8084);
+    serv_addr.sin_addr.s_addr = inet_addr("127.0.0.4");
+    serv_addr.sin_port = htons(8086);
 
     /* Establish connecction to the server */
     if(connect(clientSock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0){
@@ -100,12 +113,45 @@ int main(int argc, char *argv[])
     /* send user menu selection to server */
     send(clientSock, menuOption, strlen(menuOption), 0);
 
+    /*clearing rcvBuf*/
     memset(rcvBuf, 0, RCVBUFSIZE);
 
-    recv(clientSock, rcvBuf, RCVBUFSIZE - 1, 0);
-    printf("List of Files:\n");
-    for(i = 0; i < MDLEN; i++) printf("%c", rcvBuf[i]);
-    printf("\n");
+    /*if list files is called*/
+    if (strcmp(menuOption, "List Files") == 0){
+      listFilesFunc(clientSock, rcvBuf);
+    }
+    /*if diff is called*/
+    else if(strcmp(menuOption, "Diff") == 0){
+      // calling list files for server files
+      listFilesFunc(clientSock, rcvBuf);
+
+      // getting full list of client files
+      char clientFileList[50*fileStorageSize];
+      strcpy(clientFileList, fileStorage[0].name);
+      strcat(clientFileList, "\n");
+      for (int i = 1; i < fileStorageSize; i++){
+        strcat(clientFileList, fileStorage[i].name);
+        strcat(clientFileList, "\n");
+      }
+
+      // comparing file names and creating a new diff file list 
+      char *token; 
+      char diffFileList[50*fileStorageSize];
+      token = strtok(rcvBuf, "\n");
+      while(token != NULL){
+        const char *found = strstr(clientFileList, token);
+        if (found) {
+          printf("%s was found\n", token);
+        }
+        else{
+          strcpy(diffFileList, token);
+          printf("%s was NOT found\n", token);
+        }
+        token = strtok(NULL, "\n");
+      }
+
+      printf("This is diff file: %s", diffFileList);
+    }
 
     close(clientSock);
 
