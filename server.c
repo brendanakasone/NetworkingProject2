@@ -21,6 +21,12 @@
 #define SNDBUFSIZE 512		/* The send buffer size */
 #define BUFSIZE 40		/* Your name can be as many as 40 chars*/
 
+typedef struct{
+    char name[50];
+    long contents; 
+    FILE *fileptr; 
+} file;
+
 /* The main function */
 int main(int argc, char *argv[])
 {
@@ -61,6 +67,7 @@ int main(int argc, char *argv[])
     /* Loop server forever*/
     while(1)
     {
+      printf("Looped");
       clntLen = sizeof(changeClntAddr);
 	    /* Accept incoming connection */
       if((clientSock = accept(serverSock, (struct sockaddr *)&changeClntAddr, &clntLen)) < 0){
@@ -70,23 +77,57 @@ int main(int argc, char *argv[])
 	    /* Extract Your Name from the packet, store in nameBuf */
       int bytesReceived = recv(clientSock, nameBuf, BUFSIZE - 1, 0); 
       nameBuf[bytesReceived] = '\0'; 
+      // for(int i = 0; i < BUFSIZE; i++) printf("%c", nameBuf[i]);
+      // printf("\n");
+      nameBuf[strcspn(nameBuf, "\n")] = 0; 
 
-      /* Run this and return the final value in md_value to client */
-      /* Takes the client name and changes it */
-      /* Students should NOT touch this code */
-        OpenSSL_add_all_digests();
-        md = EVP_get_digestbyname("SHA256");
-        mdctx = EVP_MD_CTX_create();
-        EVP_DigestInit_ex(mdctx, md, NULL);
-        EVP_DigestUpdate(mdctx, nameBuf, strlen(nameBuf));
-        EVP_DigestFinal_ex(mdctx, md_value, &md_len);
-        EVP_MD_CTX_destroy(mdctx);
+      if (strcmp(nameBuf, "List Files") == 0) 
+      {
+        size_t sizeOfFileNames = 0;
+        for(int i = 0; i < fileStorageSize; i++){
+          sizeOfFileNames = sizeOfFileNames + strlen(fileStorage[i].name + 5);
+        }
+        char *allFileNames = (char *)malloc(sizeOfFileNames * sizeof(char));
+        strcpy(allFileNames, fileStorage[0].name);
+        for(int i = 1; i < fileStorageSize; i++){
+          strcat(allFileNames, "\n");
+          strcat(allFileNames, fileStorage[i].name);
+        }
 
-      /* Return md_value to client */
-        send(clientSock, md_value, md_len, 0);
+        send(clientSock, allFileNames, strlen(allFileNames), 0);
+        printf("Successfully received List Files\n");
+      } 
+      else if (strcmp(nameBuf, "Diff") == 0)
+      {
+        printf("Successfully received Diff\n");
+      }
+      else if (strcmp(nameBuf, "Pull") == 0)
+      {
+        printf("Successfully received Pull\n");
+      }
+      else if (strcmp(nameBuf, "Leave") == 0)
+      {
+        printf("Successfully received Leave\n");
+        leave = 1;
+      }
+      else 
+      {
+        printf("Please retry!\n");
+      }
 
-        close(clientSock);
+      // receiving new user option
+      memset(nameBuf, 0, BUFSIZE);
+      recv(clientSock, nameBuf, BUFSIZE - 1, 0); 
+      nameBuf[bytesReceived] = '\0';
+      nameBuf[strcspn(nameBuf, "\n")] = 0; 
+      printf("Second command received\n");
+      for(int i = 0; i < BUFSIZE; i++) printf("%c", nameBuf[i]);
+      printf("\n"); 
+      continue;
+      
     }
+    free(fileStorage);
+    close(clientSock);
     close(serverSock);
 
     return 0;

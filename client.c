@@ -20,7 +20,13 @@
 /* Constants */
 #define RCVBUFSIZE 512		    /* The receive buffer size */
 #define SNDBUFSIZE 512		    /* The send buffer size */
-#define MDLEN 32
+#define MDLEN 128
+
+typedef struct{
+    char name[50];
+    long contents;
+    FILE *fileptr; 
+} file;
 
 /* The main function */
 int main(int argc, char *argv[])
@@ -68,14 +74,51 @@ int main(int argc, char *argv[])
 
     /* Receive and print response from the server */
     int bytesReceived = recv(clientSock, rcvBuf, RCVBUFSIZE - 1, 0);
+    char clientPrompt[400];
     rcvBuf[bytesReceived] = '\0';
-
-    printf("%s\n", studentName);
-    printf("Transformed input is: ");
-    for(i = 0; i < MDLEN; i++) printf("%02x", rcvBuf[i]);
+    for(i = 0; i < MDLEN; i++){
+      printf("%c", rcvBuf[i]);
+      clientPrompt[i] = rcvBuf[i];
+    }
     printf("\n");
 
-    close(clientSock);
+    /* getting user menu selection from terminal */
+    char temp[25];
+    fgets(temp, sizeof(temp), stdin);
+    temp[strcspn(temp, "\n")] = 0;
+    temp[24] = '\0';
+    char *menuOption = temp;
 
+    /* send user menu selection to server */
+    send(clientSock, menuOption, strlen(menuOption), 0);
+
+    memset(rcvBuf, 0, RCVBUFSIZE);
+
+    menuOption[strcspn(menuOption, "\n")] = 0; 
+
+    while (strcmp(menuOption, "Leave") != 0)
+    {
+        // receiving list of files
+        recv(clientSock, rcvBuf, RCVBUFSIZE - 1, 0);
+        printf("List of Files:\n");
+        for(i = 0; i < MDLEN; i++) printf("%c", rcvBuf[i]);
+        printf("\n");
+
+        // reprompting user for new selection
+        printf("%s", clientPrompt);
+        printf("\n");
+        memset(temp, 0, sizeof(temp));
+        memset(menuOption, 0, strlen(menuOption));
+        fgets(temp, sizeof(temp), stdin);
+        temp[strcspn(temp, "\n")] = 0;
+        temp[24] = '\0';
+        menuOption = temp;
+
+        // sending new selection to server 
+        send(clientSock, menuOption, strlen(menuOption), 0);
+
+    }
+
+    close(clientSock);
     return 0;
 }
