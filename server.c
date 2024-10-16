@@ -29,19 +29,31 @@ typedef struct{
 
 void listFilesFunc(int fileStorageSize, file* fileStorage, int clientSock){
   // sending server files to client 
+
+  // calculating how much memory to allocate
   size_t sizeOfFileNames = 0;
   for(int i = 0; i < fileStorageSize; i++){
-    sizeOfFileNames = sizeOfFileNames + strlen(fileStorage[i].name + 5);
+    sizeOfFileNames += strlen(fileStorage[i].name);
   }
-  char *allFileNames = (char *)malloc(sizeOfFileNames * sizeof(char));
+
+  // allocating memory
+  char *allFileNames = (char *)malloc((sizeOfFileNames + fileStorageSize) * sizeof(char));
+  if (allFileNames == NULL){
+    printf("allFileNames failed memoryalloc");
+    exit(1);
+  }
+
+  // adding strings to the array
   strcpy(allFileNames, fileStorage[0].name);
   for(int i = 1; i < fileStorageSize; i++){
     strcat(allFileNames, "\n");
     strcat(allFileNames, fileStorage[i].name);
   }
 
+  // sending server file names and freeing memory 
   send(clientSock, allFileNames, strlen(allFileNames), 0);
   printf("Successfully sent server files\n");
+  free(allFileNames);
 } 
 
 /* The main function */
@@ -63,7 +75,6 @@ int main(int argc, char *argv[])
     /* File Storage */
     int fileStorageSize = 5; // hard coded for now 
     file* fileStorage = (file*)malloc(fileStorageSize * sizeof(file));
-
     if (fileStorage == NULL){
       printf("memory allocation failed\n");
     }
@@ -124,8 +135,10 @@ int main(int argc, char *argv[])
       for(int i = 0; i < BUFSIZE; i++) printf("%c", nameBuf[i]);
       printf("\n");
 
+      /* removing new line */
       nameBuf[strcspn(nameBuf, "\n")] = 0; 
 
+      /*user options*/
       if (strcmp(nameBuf, "List Files") == 0) 
       {
         listFilesFunc(fileStorageSize, fileStorage, clientSock);
@@ -148,6 +161,8 @@ int main(int argc, char *argv[])
       {
         printf("Please retry!\n");
       }
+
+      memset(nameBuf, 0, BUFSIZE);
 
       // size_t nameBufSize = sizeof(nameBuf);
       // size_t listFilesSize = sizeof(listFiles);

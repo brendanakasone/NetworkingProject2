@@ -70,12 +70,21 @@ int main(int argc, char *argv[])
     }
 
     /* Get the Student Name from the command line */
-    if (argc != 2) 
+    if (argc < 2) 
     {
       printf("Incorrect input format. The correct format is:\n\tnameChanger your_name\n");
       exit(1);
     }
-    studentName = argv[1];
+
+    // getting files from command line 
+    printf("Command line arguments");
+    for (int i = 1; i < argc; i++){
+      printf("%s\n", argv[i]);
+    }
+
+
+
+    // clearing memory 
     memset(&sndBuf, 0, RCVBUFSIZE);
     memset(&rcvBuf, 0, RCVBUFSIZE);
 
@@ -149,10 +158,13 @@ int main(int argc, char *argv[])
         }
         token = strtok(NULL, "\n");
       }
+      printf("This is diff file: %s\n", diffFileList);
 
-      printf("This is diff file: %s", diffFileList);
+      memset(clientFileList, 0, sizeof(clientFileList));
+      memset(diffFileList, 0, sizeof(diffFileList));
     }
 
+    free(fileStorage);
     close(clientSock);
 
     return 0;
