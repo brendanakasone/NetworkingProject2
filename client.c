@@ -24,7 +24,7 @@
 
 typedef struct{
     char name[50];
-    long contents; 
+    long long contents; 
     FILE *fileptr;
 } file;
 
@@ -50,24 +50,24 @@ int main(int argc, char *argv[])
     int i;			    /* Counter Value */
 
     /* File Storage */
-    int fileStorageSize = 5; // hard coded for now 
+    int fileStorageSize = 0;
     file* fileStorage = (file*)malloc(fileStorageSize * sizeof(file));
 
     if (fileStorage == NULL){
       printf("memory allocation failed\n");
     }
 
-    // hard code for now 
-    for (int i = 0; i < fileStorageSize; i++){
-      snprintf(fileStorage[i].name, sizeof(fileStorage[i].name), "File %d", i + 2);
-      fileStorage[i].contents = 99 + i;
-    }
+    // // hard code for now 
+    // for (int i = 0; i < fileStorageSize; i++){
+    //   snprintf(fileStorage[i].name, sizeof(fileStorage[i].name), "File %d", i + 2);
+    //   fileStorage[i].contents = 99 + i;
+    // }
 
-    // making sure the dynamic array works 
-    printf("\nDynamic array checking (Client Files):\n");
-    for(int i = 0; i < fileStorageSize; i++){
-      printf("Names of files: %s, Contents: %ld\n", fileStorage[i].name, fileStorage[i].contents);
-    }
+    // // making sure the dynamic array works 
+    // printf("\nDynamic array checking (Client Files):\n");
+    // for(int i = 0; i < fileStorageSize; i++){
+    //   printf("Names of files: %s, Contents: %ld\n", fileStorage[i].name, fileStorage[i].contents);
+    // }
 
     /* Get the Student Name from the command line */
     if (argc < 2) 
@@ -79,10 +79,53 @@ int main(int argc, char *argv[])
     // getting files from command line 
     printf("Command line arguments");
     for (int i = 1; i < argc; i++){
+
+      // opening file in binary mode 
       printf("%s\n", argv[i]);
+      FILE *f = fopen(argv[i], "rb"); 
+      if(f == NULL){
+        printf("error opening file");
+        continue;
+      }
+
+      // adding binary file together for contents
+      int value; 
+      long long c = 0; 
+      size_t readCount; 
+
+      while((readCount = fread(&value, sizeof(int), 1, f)) == 1){
+        c += value;
+      }
+
+      // creating new struct
+      file *fstruct = malloc(sizeof(file)); 
+      strncpy(fstruct->name, argv[i], sizeof(fstruct->name) - 1);
+      fstruct->name[sizeof(fstruct->name) - 1] = '\0'; 
+      fstruct->contents = c;
+      fstruct->fileptr = f;
+
+      // close file 
+      fclose(f);
+
+      // reallocating memory array 
+      fileStorageSize++;
+      file* fs = (file*)realloc(fileStorage, sizeof(fileStorage) + sizeof(fstruct));
+      if (fs == NULL){
+        printf("Reallocation failed\n");
+        free(fileStorage);
+        return 1;
+      }
+      fileStorage = fs;
     }
 
-
+    // making sure the dynamic array works 
+    printf("\nDynamic array checking (Client Files):\n");
+    for(int i = 0; i < fileStorageSize; i++){
+      printf("Names of files: %s, Contents: %lld\n", fileStorage[i].name, fileStorage[i].contents);
+      if(fileStorage[i].fileptr != NULL){
+        printf("file is set");
+      }
+    }
 
     // clearing memory 
     memset(&sndBuf, 0, RCVBUFSIZE);

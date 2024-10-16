@@ -163,15 +163,6 @@ int main(int argc, char *argv[])
       }
 
       memset(nameBuf, 0, BUFSIZE);
-
-      // size_t nameBufSize = sizeof(nameBuf);
-      // size_t listFilesSize = sizeof(listFiles);
-      // size_t actualNameBufLength = strlen(nameBuf); // Length of actual data in nameBuf
-
-      // printf("This is the size of nameBuf (array size): %zu bytes.\n", nameBufSize);
-      // printf("This is the actual length of data in nameBuf: %zu bytes.\n", actualNameBufLength);
-      // printf("Tshis is the size of listFiles: %zu bytes.\n", listFilesSize);
-
     
     }
     free(fileStorage);
