@@ -73,17 +73,60 @@ int main(int argc, char *argv[])
     int md_len;					/* Digest data structure size tracking */
 
     /* File Storage */
-    int fileStorageSize = 5; // hard coded for now 
+    int fileStorageSize = 0; // hard coded for now 
     file* fileStorage = (file*)malloc(fileStorageSize * sizeof(file));
     if (fileStorage == NULL){
       printf("memory allocation failed\n");
     }
 
-    // hard code for now 
-    for (int i = 0; i < fileStorageSize; i++){
-      snprintf(fileStorage[i].name, sizeof(fileStorage[i].name), "File %d", i + 1);
-      fileStorage[i].contents = 100 + i;
+    // opening the file
+    FILE *f1 = fopen("clientFiles/test1.txt", "rb");
+    if (f1 == NULL){
+      printf("error opening file\n");
     }
+    else {
+      printf("test1.txt opened successsfully\n");
+    }
+
+    // adding binary file together for contents
+    int v; 
+    long long cl = 0; 
+    size_t readCount1; 
+    // loops through the file and adds the contents of the file together
+    while((readCount1 = fread(&v, sizeof(int), 1, f1)) == 1){
+      cl += v;
+    }
+
+    printf("Here are the values to everything: %lld\n", cl);
+
+    char fname[] = "serverFiles/test1.txt";
+
+    // creating new struct
+    file *fstruct = malloc(sizeof(f1) + sizeof(fname) + sizeof(cl)); 
+    strcpy(fstruct->name, fname);
+    fstruct->contents = cl;
+    fstruct->fileptr = f1;
+
+    fclose(f1);
+
+    // reallocating memory array 
+    fileStorageSize++;
+    file* fs = (file*)realloc(fileStorage, sizeof(fileStorage) + sizeof(fstruct));
+    if (fs == NULL){
+      printf("Reallocation failed\n");
+      free(fileStorage);
+      return 1;
+    }
+    fileStorage = fs;
+
+    // adding new struct to the array
+    fileStorage[fileStorageSize-1] = *fstruct;
+
+    // // hard code for now 
+    // for (int i = 0; i < fileStorageSize; i++){
+    //   snprintf(fileStorage[i].name, sizeof(fileStorage[i].name), "File %d", i + 1);
+    //   fileStorage[i].contents = 100 + i;
+    // }
 
     // making sure the dynamic array works 
     printf("\nDynamic array checking (Server files):\n");
@@ -100,7 +143,7 @@ int main(int argc, char *argv[])
     memset(&changeServAddr, 0, sizeof(changeServAddr));
     changeServAddr.sin_family = AF_INET;
     changeServAddr.sin_addr.s_addr = htonl(INADDR_ANY);
-    changeServAddr.sin_port = htons(8086);
+    changeServAddr.sin_port = htons(8087);
     
     /* Bind to local address structure */
     if (bind(serverSock, (struct sockaddr *)&changeServAddr, sizeof(changeServAddr)) < 0){

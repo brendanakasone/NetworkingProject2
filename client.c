@@ -76,47 +76,48 @@ int main(int argc, char *argv[])
       exit(1);
     }
 
-    // getting files from command line 
-    printf("Command line arguments");
-    for (int i = 1; i < argc; i++){
-
-      // opening file in binary mode 
-      printf("%s\n", argv[i]);
-      FILE *f = fopen(argv[i], "rb"); 
-      if(f == NULL){
-        printf("error opening file");
-        continue;
-      }
-
-      // adding binary file together for contents
-      int value; 
-      long long c = 0; 
-      size_t readCount; 
-
-      while((readCount = fread(&value, sizeof(int), 1, f)) == 1){
-        c += value;
-      }
-
-      // creating new struct
-      file *fstruct = malloc(sizeof(file)); 
-      strncpy(fstruct->name, argv[i], sizeof(fstruct->name) - 1);
-      fstruct->name[sizeof(fstruct->name) - 1] = '\0'; 
-      fstruct->contents = c;
-      fstruct->fileptr = f;
-
-      // close file 
-      fclose(f);
-
-      // reallocating memory array 
-      fileStorageSize++;
-      file* fs = (file*)realloc(fileStorage, sizeof(fileStorage) + sizeof(fstruct));
-      if (fs == NULL){
-        printf("Reallocation failed\n");
-        free(fileStorage);
-        return 1;
-      }
-      fileStorage = fs;
+    // opening the file
+    FILE *f1 = fopen("clientFiles/test1.txt", "rb");
+    if (f1 == NULL){
+      printf("error opening file\n");
     }
+    else {
+      printf("test1.txt opened successsfully\n");
+    }
+
+    // adding binary file together for contents
+    int v; 
+    long long cl = 0; 
+    size_t readCount1; 
+    // loops through the file and adds the contents of the file together
+    while((readCount1 = fread(&v, sizeof(int), 1, f1)) == 1){
+      cl += v;
+    }
+
+    printf("Here are the values to everything: %lld\n", cl);
+
+    char fname[] = "clientFiles/test1.txt";
+
+    // creating new struct
+    file *fstruct = malloc(sizeof(f1) + sizeof(fname) + sizeof(cl)); 
+    strcpy(fstruct->name, fname);
+    fstruct->contents = cl;
+    fstruct->fileptr = f1;
+
+    fclose(f1);
+
+    // reallocating memory array 
+    fileStorageSize++;
+    file* fs = (file*)realloc(fileStorage, sizeof(fileStorage) + sizeof(fstruct));
+    if (fs == NULL){
+      printf("Reallocation failed\n");
+      free(fileStorage);
+      return 1;
+    }
+    fileStorage = fs;
+
+    // adding new struct to the array
+    fileStorage[fileStorageSize-1] = *fstruct;
 
     // making sure the dynamic array works 
     printf("\nDynamic array checking (Client Files):\n");
@@ -140,7 +141,7 @@ int main(int argc, char *argv[])
     memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_addr.s_addr = inet_addr("127.0.0.4");
-    serv_addr.sin_port = htons(8086);
+    serv_addr.sin_port = htons(8087);
 
     /* Establish connecction to the server */
     if(connect(clientSock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0){
