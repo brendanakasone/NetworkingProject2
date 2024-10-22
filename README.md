@@ -20,17 +20,21 @@ Running the Client:
 ```
 
 # How to Use
-All options are case sensitive:
-List Files
-Diff
-Pull
-Leave:
-- closes# CNT 4007 Project 2
+All options are case sensitive:  
+List Files  
+- 
+Diff  
+- 
+Pull  
+- 
+Leave:  
+- closes CNT 4007 Project 2
 
 # Description
 Project 2 is a file synchronization application. Multiple clients can concurrently synchronize their local files with a common, shared server. A server and client was developed to provide this functionality. 
 
 # Setting Up
+SSH into the UF Server  
 Compile the code using:
 ```
 make
