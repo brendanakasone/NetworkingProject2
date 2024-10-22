@@ -19,6 +19,7 @@
 
 #include <libgen.h>
 #include <dirent.h>
+#include <stdbool.h>
 
 /* Constants */
 #define RCVBUFSIZE 512		    /* The receive buffer size */
@@ -26,7 +27,7 @@
 #define MDLEN 128
 
 typedef struct{
-    char name[50];
+    char name[1024];
     long long contents; 
     FILE *fileptr;
 } file;
@@ -37,6 +38,7 @@ typedef struct {
 
 void listFilesFunc(int clientSock, char rcvBuf[RCVBUFSIZE]){
   // receiving list files 
+  memset(rcvBuf, 0, RCVBUFSIZE);
   recv(clientSock, rcvBuf, RCVBUFSIZE - 1, 0);
   printf("List of Server Files:\n");
   for(int i = 0; i < MDLEN; i++) printf("%c", rcvBuf[i]);
@@ -66,6 +68,10 @@ void *receiveMessages(void *args) {
     pthread_exit(NULL);
 }
 
+long long ntohll(long long value) {
+    return ((long long)ntohl(value & 0xFFFFFFFF) << 32) | ntohl(value >> 32);
+}
+
 void handleMenu(int clientSock, file* fileStorage, int fileStorageSize, char *folderPath){
     char rcvBuf[RCVBUFSIZE];
     char sndBuf[SNDBUFSIZE];
@@ -81,6 +87,9 @@ void handleMenu(int clientSock, file* fileStorage, int fileStorageSize, char *fo
     temp[24] = '\0';
     char *menuOption = temp;
 
+    // diff file names
+    char **diffFiles;
+
     // sending user selection to server 
     send(clientSock, menuOption, strlen(menuOption), 0);
     memset(rcvBuf, 0, RCVBUFSIZE);
@@ -89,35 +98,78 @@ void handleMenu(int clientSock, file* fileStorage, int fileStorageSize, char *fo
         listFilesFunc(clientSock, rcvBuf);
     } 
     else if(strcmp(menuOption, "Diff") == 0){
-        listFilesFunc(clientSock, rcvBuf);
+        // listFilesFunc(clientSock, rcvBuf);
+        // memset(rcvBuf, 0, RCVBUFSIZE);
 
         // get the list of file names from server
         // get the list of contents from server
         // compare the contents of the server to the client 
         // list the file names of different server files
 
-        char clientFileList[50*fileStorageSize];
-        strcpy(clientFileList, fileStorage[0].name);
-        strcat(clientFileList, "\n");
-        for (int i = 1; i < fileStorageSize; i++){
-            strcat(clientFileList, fileStorage[i].name);
-            strcat(clientFileList, "\n");
+        // receiving size of server storage
+        int recvSize;
+        recv(clientSock, &recvSize, sizeof(recvSize), 0);
+        int serverSize = ntohl(recvSize);
+
+        // printf("server size: %d\n", serverSize);
+
+        // ack
+        send(clientSock, "Ok", strlen("Ok"), 0);
+
+        // receiving list of names
+        char **serverNames = malloc(serverSize * sizeof(char*));
+        for (int i = 0; i < serverSize; i++){
+            int len;
+            recv(clientSock, &len, sizeof(len), 0);
+            serverNames[i] = malloc((len + 1) * sizeof(char*));
+
+            // ack
+            send(clientSock, "Ok", strlen("Ok"), 0);
+
+            int bytesRecv = recv(clientSock, serverNames[i], len, 0);
+            serverNames[i][len] = '\0';
         }
 
-        char *token;
-        char diffFileList[50*fileStorageSize];
-        token = strtok(rcvBuf, "\n");
-        while(token != NULL){
-            const char *found = strstr(clientFileList, token);
-            if (found) {
-                printf("%s was found\n", token);
-            } else{
-                strcpy(diffFileList, token);
-                printf("%s was NOT found\n", token);
-            }
-            token = strtok(NULL, "\n");
+        // for (int i = 0; i < serverSize; i++){
+        //     printf("server file name: %s\n", serverNames[i]);
+        // }
+
+        // ack
+        send(clientSock, "Ok", strlen("Ok"), 0);
+
+        // receiving the list of contents
+        long long serverContents[serverSize];
+        for (int i = 0; i < serverSize; i++){
+            long long t;
+            recv(clientSock, &t, sizeof(t), 0);
+            long long recvContents = ntohll(t);
+            serverContents[i] = recvContents;
         }
-        printf("This is diff file: %s\n", diffFileList);
+        // for (int i = 0; i < serverSize; i++){
+        //     printf("servercontent: %lld\n", serverContents[i]);
+        // }
+
+        char **df = malloc(serverSize * 1024);
+        int iter = 0;
+        for(int i = 0; i < serverSize; i++){
+            bool inClient = false;
+            for(int i = 0; i < fileStorageSize; i++){
+                if (serverContents[i] == fileStorage[i].contents){
+                    inClient = true;
+                }
+            }
+            if (!inClient){
+                df[iter] = serverNames[i];
+                iter++;
+            }
+        }
+
+        diffFiles = df;
+
+        printf("Different files: \n");
+        for(int i = 0; i < iter; i++){
+            printf("%d. %s\n", i, diffFiles[i]);
+        }
     } 
     else if(strcmp(menuOption, "Pull") == 0) {
         printf("Requesting missing files from server...\n");
@@ -295,7 +347,7 @@ int main(int argc, char *argv[])
     memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_addr.s_addr = inet_addr("127.0.0.9");
-    serv_addr.sin_port = htons(8082);
+    serv_addr.sin_port = htons(8081);
 
     /* Establish connecction to the server */
     if(connect(clientSock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0){

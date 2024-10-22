@@ -24,7 +24,7 @@
 #define BUFSIZE 40		    /* Your name can be as many as 40 chars */
 
 typedef struct {
-    char name[50];
+    char name[1024];
     long long contents; 
     FILE *fileptr;
 } file;
@@ -59,6 +59,10 @@ void listFilesFunc(int fileStorageSize, file* fileStorage, int clientSock) {
     free(allFileNames);
 }
 
+long long htonll(long long value) {
+    return ((long long)htonl(value & 0xFFFFFFFF) << 32) | htonl(value >> 32);
+}
+
 /* Function to handle the menu options for the client */
 void handleClientMenu(int clientSock, int fileStorageSize, file* fileStorage) {
     char nameBuf[BUFSIZE];
@@ -80,7 +84,43 @@ void handleClientMenu(int clientSock, int fileStorageSize, file* fileStorage) {
         }
         //if diff files 
         else if (strcmp(nameBuf, "Diff") == 0) {
-            listFilesFunc(fileStorageSize, fileStorage, clientSock);  // Placeholder for diff functionality
+            // listFilesFunc(fileStorageSize, fileStorage, clientSock);  // Placeholder for diff functionality
+
+            // sending size of server storage
+            memset(nameBuf, 0, BUFSIZE);
+            int sendSize = htonl(fileStorageSize);
+            send(clientSock, &sendSize, sizeof(sendSize), 0);
+
+            // ack
+            memset(nameBuf, 0, BUFSIZE);
+            recv(clientSock, nameBuf, BUFSIZE - 1, 0);
+            printf("Ok received\n");
+
+            // sending list of file names
+            for (int i = 0; i < fileStorageSize; i++){
+                // sending length of name
+                int len = strlen(fileStorage[i].name);
+                send(clientSock, &len, sizeof(len), 0);
+                // ack
+                memset(nameBuf, 0, BUFSIZE);
+                recv(clientSock, nameBuf, BUFSIZE - 1, 0);
+                printf("Ok received\n");
+                // sending name
+                send(clientSock, fileStorage[i].name, strlen(fileStorage[i].name), 0);
+                printf("server sending name: %s\n", fileStorage[i].name);
+            }
+
+            // ack
+            memset(nameBuf, 0, BUFSIZE);
+            recv(clientSock, nameBuf, BUFSIZE - 1, 0);
+            printf("Ok received\n");
+
+            // sending list of contents
+            for (int i = 0; i < fileStorageSize; i++){
+                long long sendContent = htonll(fileStorage[i].contents);
+                send(clientSock, &sendContent, sizeof(sendContent), 0);
+            }
+
             printf("Successfully received Diff\n");
         } 
         // if pull files
@@ -176,7 +216,7 @@ file openFile(char* filePath){
 int main(int argc, char *argv[]) {
     int serverSock, clientSock;
     struct sockaddr_in serv_addr, clnt_addr;
-    unsigned short serverPort = 8082;
+    unsigned short serverPort = 8081;
     unsigned int clntLen;
 
     char nameBuf[BUFSIZE];
