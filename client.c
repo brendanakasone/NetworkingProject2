@@ -176,7 +176,7 @@ int main(int argc, char *argv[])
 
     char sndBuf[SNDBUFSIZE];	    /* Send Buffer */
     char rcvBuf[RCVBUFSIZE];	    /* Receive Buffer */
-    
+
     int i;			    /* Counter Value */
 
     /* File Storage */
@@ -193,14 +193,14 @@ int main(int argc, char *argv[])
     }
 
     char *folderPath;
-    char fname[100];
+    // char fname[100];
     // opening the file
     // snprintf(fname, sizeof(fname), "%s/test1.txt", folderPath);
 
-    FILE *f1 = fopen("clientFiles/text1.txt", "rb");
+    // opening the file
+    FILE *f1 = fopen("/cise/homes/b.nakasone/NetworkingProject2/clientFiles1/text0.txt", "rb");
     if (f1 == NULL){
-      printf("error opening file  lol\n");
-      return 1;
+      printf("error opening file\n");
     }
     else {
       printf("test1.txt opened successsfully\n");
@@ -217,14 +217,10 @@ int main(int argc, char *argv[])
 
     printf("Here are the values to everything: %lld\n", cl);
 
-    // char fname[] = "clientFiles/test1.txt";
+    char fname[] = "clientFiles/test1.txt";
 
     // creating new struct
-    file *fstruct = malloc(sizeof(file));
-    if (fstruct == NULL) {
-        perror("Failed to allocate memory for file structure");
-        exit(EXIT_FAILURE);
-    }
+    file *fstruct = malloc(sizeof(f1) + sizeof(fname) + sizeof(cl)); 
     strcpy(fstruct->name, fname);
     fstruct->contents = cl;
     fstruct->fileptr = f1;
@@ -233,7 +229,7 @@ int main(int argc, char *argv[])
 
     // reallocating memory array 
     fileStorageSize++;
-    file* fs = (file*)realloc(fileStorage, (fileStorageSize + 1) * sizeof(file)); // Correct reallocation size
+    file* fs = (file*)realloc(fileStorage, sizeof(fileStorage) + sizeof(fstruct));
     if (fs == NULL){
       printf("Reallocation failed\n");
       free(fileStorage);
@@ -243,7 +239,6 @@ int main(int argc, char *argv[])
 
     // adding new struct to the array
     fileStorage[fileStorageSize-1] = *fstruct;
-    free(fstruct);
 
     // making sure the dynamic array works 
     printf("\nDynamic array checking (Client Files):\n");
