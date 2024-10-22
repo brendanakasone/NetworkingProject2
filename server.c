@@ -63,9 +63,11 @@ void handleClientMenu(int clientSock, int fileStorageSize, file* fileStorage) {
     char nameBuf[BUFSIZE];
 
     while (1) {
+        // sending menu 
         char *message = "Please pick one of the following options:\n1. List Files\n2. Diff\n3. Pull\n4. Leave";
         send(clientSock, message, strlen(message), 0);
 
+        // receiving user response
         int bytesReceived = recv(clientSock, nameBuf, BUFSIZE - 1, 0);
         if (bytesReceived < 0) {
             fprintf(stderr, "Failed to receive data from client\n");
@@ -73,15 +75,19 @@ void handleClientMenu(int clientSock, int fileStorageSize, file* fileStorage) {
         }
         nameBuf[bytesReceived] = '\0';
         printf("Client selected: %s\n", nameBuf);
-
         nameBuf[strcspn(nameBuf, "\n")] = 0;
 
+        // if list files
         if (strcmp(nameBuf, "List Files") == 0) {
             listFilesFunc(fileStorageSize, fileStorage, clientSock);
-        } else if (strcmp(nameBuf, "Diff") == 0) {
+        }
+        //if diff files 
+        else if (strcmp(nameBuf, "Diff") == 0) {
             listFilesFunc(fileStorageSize, fileStorage, clientSock);  // Placeholder for diff functionality
             printf("Successfully received Diff\n");
-        } else if (strcmp(nameBuf, "Pull") == 0) {
+        } 
+        // if pull files
+        else if (strcmp(nameBuf, "Pull") == 0) {
             printf("Client requested to pull files.\n");
 
             for (int i = 0; i < fileStorageSize; i++) {
@@ -108,17 +114,24 @@ void handleClientMenu(int clientSock, int fileStorageSize, file* fileStorage) {
                 printf("File %s sent to client.\n", fileStorage[i].name);
             }
             printf("All files sent to client.\n");
-        } else if (strcmp(nameBuf, "Leave") == 0) {
+        } 
+        // if leave
+        else if (strcmp(nameBuf, "Leave") == 0) {
             printf("Client has chosen to leave.\n");
             break;
-        } else {
+        } 
+        // if invalid input
+        else {
             printf("Invalid option. Please retry!\n");
         }
+        // clear buf
+        memset(nameBuf, 0, BUFSIZE);
     }
     close(clientSock);
 }
 
 void* clientThread(void* args) {
+    // threading
     clientThreadArgs* clientArgs = (clientThreadArgs*)args;
     int clientSock = clientArgs->clientSock;
     int fileStorageSize = clientArgs->fileStorageSize;
@@ -139,6 +152,7 @@ int main(int argc, char *argv[]) {
 
     char nameBuf[BUFSIZE];
 
+    // loading files into dynamic array
     int fileStorageSize = 0;
     file* fileStorage = (file*)malloc(fileStorageSize * sizeof(file));
     if (fileStorage == NULL) {
@@ -184,28 +198,35 @@ int main(int argc, char *argv[]) {
         fileStorage[fileStorageSize - 1] = *newFile;
     }
 
+    /* Create a new TCP socket*/
     if ((serverSock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
         printf("socket failed\n");
         exit(1);
     }
 
+    /* Construct local address structure*/
     memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
     serv_addr.sin_port = htons(serverPort);
 
+    /* Bind to local address structure */
     if (bind(serverSock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
         printf("bind failed\n");
         exit(1);
     }
 
+    /* Listen for incoming connections */
     if (listen(serverSock, 10) < 0) {
         printf("listen failed\n");
         exit(1);
     }
 
+    // loop forever
     while (1) {
         clntLen = sizeof(clnt_addr);
+
+        // accept incoming connections
         if ((clientSock = accept(serverSock, (struct sockaddr *)&clnt_addr, &clntLen)) < 0) {
             printf("accept failed\n");
             continue;
@@ -213,6 +234,7 @@ int main(int argc, char *argv[]) {
 
         printf("Client connected.\n");
 
+        // threading 
         clientThreadArgs *clientArgs = malloc(sizeof(clientThreadArgs));
         clientArgs->clientSock = clientSock;
         clientArgs->fileStorageSize = fileStorageSize;

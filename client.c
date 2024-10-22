@@ -43,6 +43,7 @@ void listFilesFunc(int clientSock, char rcvBuf[RCVBUFSIZE]){
 } 
 
 void *receiveMessages(void *args) {
+    // threading
     threadArgs *tArgs = (threadArgs *)args;
     int clientSock = tArgs->clientSock;
     char rcvBuf[RCVBUFSIZE];
@@ -69,6 +70,7 @@ void handleMenu(int clientSock, file* fileStorage, int fileStorageSize, char *fo
     char sndBuf[SNDBUFSIZE];
     char temp[25];
 
+    // receiving menu
     int bytesReceived = recv(clientSock, rcvBuf, RCVBUFSIZE - 1, 0);
     rcvBuf[bytesReceived] = '\0';
     printf("%s\n", rcvBuf);
@@ -78,12 +80,14 @@ void handleMenu(int clientSock, file* fileStorage, int fileStorageSize, char *fo
     temp[24] = '\0';
     char *menuOption = temp;
 
+    // sending user selection to server 
     send(clientSock, menuOption, strlen(menuOption), 0);
     memset(rcvBuf, 0, RCVBUFSIZE);
 
     if (strcmp(menuOption, "List Files") == 0){
         listFilesFunc(clientSock, rcvBuf);
-    } else if(strcmp(menuOption, "Diff") == 0){
+    } 
+    else if(strcmp(menuOption, "Diff") == 0){
         listFilesFunc(clientSock, rcvBuf);
 
         char clientFileList[50*fileStorageSize];
@@ -108,7 +112,8 @@ void handleMenu(int clientSock, file* fileStorage, int fileStorageSize, char *fo
             token = strtok(NULL, "\n");
         }
         printf("This is diff file: %s\n", diffFileList);
-    } else if(strcmp(menuOption, "Pull") == 0) {
+    } 
+    else if(strcmp(menuOption, "Pull") == 0) {
         printf("Requesting missing files from server...\n");
 
         send(clientSock, "Pull", strlen("Pull"), 0);
@@ -157,11 +162,13 @@ void handleMenu(int clientSock, file* fileStorage, int fileStorageSize, char *fo
             fclose(f);
             printf("File received successfully.\n");
         }
-    } else if (strcmp(menuOption, "Leave") == 0) {
+    } 
+    else if (strcmp(menuOption, "Leave") == 0) {
         printf("Leaving the server...\n");
         close(clientSock);
         exit(0);
-    } else {
+    } 
+    else {
         printf("Invalid option. Please try again!\n");
     }
 }
@@ -272,65 +279,6 @@ int main(int argc, char *argv[])
     while (1) {
         handleMenu(clientSock, fileStorage, fileStorageSize, folderPath);
     }
-    // // START OF SENDING/RECEIVING MESSAGES: 
-
-    // /* receiving menu options */
-    // int bytesReceived = recv(clientSock, rcvBuf, RCVBUFSIZE - 1, 0);
-    // rcvBuf[bytesReceived] = '\0';
-    // for(i = 0; i < MDLEN; i++) printf("%c", rcvBuf[i]);
-    // printf("\n");
-
-    // /* getting user menu selection from terminal */
-    // char temp[25];
-    // fgets(temp, sizeof(temp), stdin);
-    // temp[strcspn(temp, "\n")] = 0;
-    // temp[24] = '\0';
-    // char *menuOption = temp;
-
-    // /* send user menu selection to server */
-    // send(clientSock, menuOption, strlen(menuOption), 0);
-
-    // /*clearing rcvBuf*/
-    // memset(rcvBuf, 0, RCVBUFSIZE);
-
-    // /*if list files is called*/
-    // if (strcmp(menuOption, "List Files") == 0){
-    //   listFilesFunc(clientSock, rcvBuf);
-    // }
-    // /*if diff is called*/
-    // else if(strcmp(menuOption, "Diff") == 0){
-    //   // calling list files for server files
-    //   listFilesFunc(clientSock, rcvBuf);
-
-    //   // getting full list of client files
-    //   char clientFileList[50*fileStorageSize];
-    //   strcpy(clientFileList, fileStorage[0].name);
-    //   strcat(clientFileList, "\n");
-    //   for (int i = 1; i < fileStorageSize; i++){
-    //     strcat(clientFileList, fileStorage[i].name);
-    //     strcat(clientFileList, "\n");
-    //   }
-
-    //   // comparing file names and creating a new diff file list 
-    //   char *token; 
-    //   char diffFileList[50*fileStorageSize];
-    //   token = strtok(rcvBuf, "\n");
-    //   while(token != NULL){
-    //     const char *found = strstr(clientFileList, token);
-    //     if (found) {
-    //       printf("%s was found\n", token);
-    //     }
-    //     else{
-    //       strcpy(diffFileList, token);
-    //       printf("%s was NOT found\n", token);
-    //     }
-    //     token = strtok(NULL, "\n");
-    //   }
-    //   printf("This is diff file: %s\n", diffFileList);
-
-    //   memset(clientFileList, 0, sizeof(clientFileList));
-    //   memset(diffFileList, 0, sizeof(diffFileList));
-    // }
 
     close(clientSock);
     free(fileStorage);
