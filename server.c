@@ -64,10 +64,6 @@ void handleClientMenu(int clientSock, int fileStorageSize, file* fileStorage) {
     char nameBuf[BUFSIZE];
 
     while (1) {
-        // sending menu 
-        char *message = "Please pick one of the following options:\n1. List Files\n2. Diff\n3. Pull\n4. Leave";
-        send(clientSock, message, strlen(message), 0);
-
         // receiving user response
         int bytesReceived = recv(clientSock, nameBuf, BUFSIZE - 1, 0);
         if (bytesReceived < 0) {
@@ -180,7 +176,7 @@ file openFile(char* filePath){
 int main(int argc, char *argv[]) {
     int serverSock, clientSock;
     struct sockaddr_in serv_addr, clnt_addr;
-    unsigned short serverPort = 8081;
+    unsigned short serverPort = 8082;
     unsigned int clntLen;
 
     char nameBuf[BUFSIZE];

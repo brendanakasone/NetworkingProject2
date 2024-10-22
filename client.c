@@ -72,10 +72,10 @@ void handleMenu(int clientSock, file* fileStorage, int fileStorageSize, char *fo
     char temp[25];
 
     // receiving menu
-    int bytesReceived = recv(clientSock, rcvBuf, RCVBUFSIZE - 1, 0);
-    rcvBuf[bytesReceived] = '\0';
-    printf("%s\n", rcvBuf);
+    char *message = "Please pick one of the following options:\n1. List Files\n2. Diff\n3. Pull\n4. Leave";
+    printf("%s\n", message);
 
+    // command line user interaction
     fgets(temp, sizeof(temp), stdin);
     temp[strcspn(temp, "\n")] = 0;
     temp[24] = '\0';
@@ -90,6 +90,11 @@ void handleMenu(int clientSock, file* fileStorage, int fileStorageSize, char *fo
     } 
     else if(strcmp(menuOption, "Diff") == 0){
         listFilesFunc(clientSock, rcvBuf);
+
+        // get the list of file names from server
+        // get the list of contents from server
+        // compare the contents of the server to the client 
+        // list the file names of different server files
 
         char clientFileList[50*fileStorageSize];
         strcpy(clientFileList, fileStorage[0].name);
@@ -290,7 +295,7 @@ int main(int argc, char *argv[])
     memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_addr.s_addr = inet_addr("127.0.0.9");
-    serv_addr.sin_port = htons(8081);
+    serv_addr.sin_port = htons(8082);
 
     /* Establish connecction to the server */
     if(connect(clientSock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0){
