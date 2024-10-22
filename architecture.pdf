@@ -11,8 +11,8 @@ To deal with multiple clients concurrently, pthreads were used. With threads, ea
 
 General Plan
 First we have decided to have dynamic arrays, one for each client and one for the server. Each dynamic array will hold their respective files. We will crawl through the client/server directories and load the files into the dynamic arrays first. Then we will connect the server and its client(s). The server will then send the client the menu selection and the client will display it. 
-The List File method will go through the server dynamic array and send the path names of the server files. 
+The List File method will go through t he server dynamic array and send the path names of the server files. 
 The Diff method will call the list file command and then compare the sum of the contents of the files. The diff method will send the client the path names of the files that are different. 
-The Pull method … [Catrina]
+The Pull method uses the diff functionality to request differing files. Then, file storage is created and then added locally to the client.
 The Leave method will close the current client server. The method exits out of the forever while loop and is then prompted to close the client socket.
 Furthermore, there will be a file called history.txt that will store all the request messages that the client sends. 

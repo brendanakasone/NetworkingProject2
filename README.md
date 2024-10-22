@@ -54,3 +54,5 @@ Leave: closes the current client
 
 # Bugs/Errors
 1. User Options are case sensitive
+2. Pull functionality not working
+3. The history.txt file not present
