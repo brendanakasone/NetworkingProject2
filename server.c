@@ -216,7 +216,7 @@ file openFile(char* filePath){
 int main(int argc, char *argv[]) {
     int serverSock, clientSock;
     struct sockaddr_in serv_addr, clnt_addr;
-    unsigned short serverPort = 8081;
+    unsigned short serverPort = 8086;
     unsigned int clntLen;
 
     char nameBuf[BUFSIZE];

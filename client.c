@@ -153,8 +153,9 @@ void handleMenu(int clientSock, file* fileStorage, int fileStorageSize, char *fo
         int iter = 0;
         for(int i = 0; i < serverSize; i++){
             bool inClient = false;
-            for(int i = 0; i < fileStorageSize; i++){
-                if (serverContents[i] == fileStorage[i].contents){
+            for(int j = 0; j < fileStorageSize; j++){
+                // printf("contents comparison: %lld, %lld\n", serverContents[i], fileStorage[j].contents);
+                if (serverContents[i] == fileStorage[j].contents){
                     inClient = true;
                 }
             }
@@ -167,6 +168,9 @@ void handleMenu(int clientSock, file* fileStorage, int fileStorageSize, char *fo
         diffFiles = df;
 
         printf("Different files: \n");
+        if (iter == 0){
+            printf("All files are the same");
+        }
         for(int i = 0; i < iter; i++){
             printf("%d. %s\n", i, diffFiles[i]);
         }
@@ -347,7 +351,7 @@ int main(int argc, char *argv[])
     memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_addr.s_addr = inet_addr("127.0.0.9");
-    serv_addr.sin_port = htons(8081);
+    serv_addr.sin_port = htons(8086);
 
     /* Establish connecction to the server */
     if(connect(clientSock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0){
