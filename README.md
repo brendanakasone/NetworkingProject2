@@ -11,12 +11,12 @@ make
 
 Running the Server:
 ```
-./server command here
+./server <directory name>
 ```
 
 Running the Client:
 ```
-./client command here
+./client <directory name>
 ```
 
 # How to Use
@@ -38,12 +38,12 @@ make
 
 Running the Server:
 ```
-./server command here
+./server <directory name>
 ```
 
 Running the Client:
 ```
-./client command here
+./client <directory name>
 ```
 
 # How to Use

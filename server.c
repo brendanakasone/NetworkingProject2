@@ -221,8 +221,8 @@ int main(int argc, char *argv[]) {
 
     char nameBuf[BUFSIZE];
 
-    if (argc < 3) {
-        printf("Usage: %s <directory> <file1> <file2> ... <fileN>\n", argv[0]);
+    if (argc < 2) {
+        printf("Usage: %s <directory>\n", argv[0]);
         exit(1);
     }
     // initializing directory
@@ -240,7 +240,7 @@ int main(int argc, char *argv[]) {
     // opening directory
     pDir = opendir(argv[1]);
     if (pDir == NULL){
-        printf("directory did not open correctly");
+        printf("Directory not found. Please try again.");
     }
 
     // looping through files in directory

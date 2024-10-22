@@ -293,7 +293,7 @@ int main(int argc, char *argv[])
     // opening directory
     pDir = opendir(argv[1]);
     if (pDir == NULL){
-        printf("directory did not open correctly");
+        printf("Directory not found. Please try again.");
     }
 
     // looping through files in directory
