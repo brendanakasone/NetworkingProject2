@@ -18,6 +18,7 @@
 #include <openssl/evp.h>	    /* for OpenSSL EVP digest libraries/SHA256 */
 
 #include <libgen.h>
+#include <dirent.h>
 
 /* Constants */
 #define RCVBUFSIZE 512		    /* The receive buffer size */
@@ -39,7 +40,7 @@ void listFilesFunc(int clientSock, char rcvBuf[RCVBUFSIZE]){
   recv(clientSock, rcvBuf, RCVBUFSIZE - 1, 0);
   printf("List of Server Files:\n");
   for(int i = 0; i < MDLEN; i++) printf("%c", rcvBuf[i]);
-  printf("\n");
+  printf("\n\n");
 } 
 
 void *receiveMessages(void *args) {
@@ -173,6 +174,36 @@ void handleMenu(int clientSock, file* fileStorage, int fileStorageSize, char *fo
     }
 }
 
+file openFile(char* filePath){
+    // opening the file
+    FILE *f1 = fopen(filePath, "rb");
+    if (f1 == NULL){
+      printf("error opening file\n");
+    }
+    else {
+      printf("file opened successsfully\n");
+    }
+
+    int v; 
+    long long cl = 0; 
+    size_t readCount1; 
+    // loops through the file and adds the contents of the file together
+    while((readCount1 = fread(&v, sizeof(int), 1, f1)) == 1){
+      cl += v;
+    }
+    printf("Here are the values to everything: %lld\n", cl);
+
+    // creating a new file struct
+    file *fstruct = malloc(sizeof(f1) + sizeof(filePath) + sizeof(cl)); 
+    strcpy(fstruct->name, filePath);
+    fstruct->contents = cl;
+    fstruct->fileptr = f1;
+
+    fclose(f1);
+
+    return *fstruct;
+}
+
 /* The main function */
 int main(int argc, char *argv[])
 {
@@ -186,73 +217,60 @@ int main(int argc, char *argv[])
 
     int i;			    /* Counter Value */
 
-    /* File Storage */
+    char *filePath;
+
+    // initializing directory
+    struct dirent *pDirent; 
+    DIR *pDir; 
+
+    // initializing file storage
     int fileStorageSize = 0;
-    file* fileStorage = (file*)malloc(fileStorageSize * sizeof(file));
-
-    if (fileStorage == NULL){
-      printf("memory allocation failed\n");
-    }
-
-    if (argc < 2) {
-        printf("Usage: ./client folder_path\n");
+    file* fileStorage = (file*)malloc(fileStorageSize* sizeof(file));
+    if (fileStorage == NULL) {
+        printf("Memory allocation failed\n");
         exit(1);
     }
 
-    char *folderPath;
-    // char fname[100];
-    // opening the file
-    // snprintf(fname, sizeof(fname), "%s/test1.txt", folderPath);
-
-    // opening the file
-    FILE *f1 = fopen("/cise/homes/b.nakasone/NetworkingProject2/clientFiles1/text0.txt", "rb");
-    if (f1 == NULL){
-      printf("error opening file\n");
-    }
-    else {
-      printf("test1.txt opened successsfully\n");
+    // opening directory
+    pDir = opendir(argv[1]);
+    if (pDir == NULL){
+        printf("directory did not open correctly");
     }
 
-    // adding binary file together for contents
-    int v; 
-    long long cl = 0; 
-    size_t readCount1; 
-    // loops through the file and adds the contents of the file together
-    while((readCount1 = fread(&v, sizeof(int), 1, f1)) == 1){
-      cl += v;
+    // looping through files in directory
+    while((pDirent = readdir(pDir)) != NULL){
+        // skip hidden files
+        if (pDirent->d_name[0] == '.') { 
+            continue;
+        }
+        // adding files to filestorage
+        else {
+            char path[1024];
+            snprintf(path, sizeof(path), "%s/%s", argv[1], pDirent->d_name);
+
+            file newFile = openFile(path);
+            // reallocating memory array 
+            fileStorageSize++;
+            file* temp = (file*)realloc(fileStorage, sizeof(fileStorage) + sizeof(newFile));
+            if (temp == NULL){
+                printf("Reallocation failed\n");
+                free(fileStorage);
+                return 1;
+            }
+            fileStorage = temp;
+            fileStorage[fileStorageSize-1] = newFile;
+            memset(path, 0, 1024);
+        }
     }
 
-    printf("Here are the values to everything: %lld\n", cl);
-
-    char fname[] = "clientFiles/test1.txt";
-
-    // creating new struct
-    file *fstruct = malloc(sizeof(f1) + sizeof(fname) + sizeof(cl)); 
-    strcpy(fstruct->name, fname);
-    fstruct->contents = cl;
-    fstruct->fileptr = f1;
-
-    fclose(f1);
-
-    // reallocating memory array 
-    fileStorageSize++;
-    file* fs = (file*)realloc(fileStorage, sizeof(fileStorage) + sizeof(fstruct));
-    if (fs == NULL){
-      printf("Reallocation failed\n");
-      free(fileStorage);
-      return 1;
-    }
-    fileStorage = fs;
-
-    // adding new struct to the array
-    fileStorage[fileStorageSize-1] = *fstruct;
+    closedir(pDir);
 
     // making sure the dynamic array works 
     printf("\nDynamic array checking (Client Files):\n");
     for(int i = 0; i < fileStorageSize; i++){
       printf("Names of files: %s, Contents: %lld\n", fileStorage[i].name, fileStorage[i].contents);
       if(fileStorage[i].fileptr != NULL){
-        printf("file is set");
+        printf("file is set\n");
       }
     }
 
@@ -277,7 +295,7 @@ int main(int argc, char *argv[])
     };
 
     while (1) {
-        handleMenu(clientSock, fileStorage, fileStorageSize, folderPath);
+        handleMenu(clientSock, fileStorage, fileStorageSize, filePath);
     }
 
     close(clientSock);

@@ -17,6 +17,7 @@
 #include <string.h>	  /* support any string ops */
 #include <openssl/evp.h>  /* for OpenSSL EVP digest libraries/SHA256 */
 #include <pthread.h>
+#include <dirent.h>
 
 #define RCVBUFSIZE 512		/* The receive buffer size */
 #define SNDBUFSIZE 512		/* The send buffer size */
@@ -24,7 +25,7 @@
 
 typedef struct {
     char name[50];
-    long contents; 
+    long long contents; 
     FILE *fileptr;
 } file;
 
@@ -143,6 +144,36 @@ void* clientThread(void* args) {
     pthread_exit(NULL);
 }
 
+file openFile(char* filePath){
+    // opening the file
+    FILE *f1 = fopen(filePath, "rb");
+    if (f1 == NULL){
+      printf("error opening file\n");
+    }
+    else {
+      printf("file opened successsfully\n");
+    }
+
+    int v; 
+    long long cl = 0; 
+    size_t readCount1; 
+    // loops through the file and adds the contents of the file together
+    while((readCount1 = fread(&v, sizeof(int), 1, f1)) == 1){
+      cl += v;
+    }
+    printf("Here are the values to everything: %lld\n", cl);
+
+    // creating a new file struct
+    file *fstruct = malloc(sizeof(f1) + sizeof(filePath) + sizeof(cl)); 
+    strcpy(fstruct->name, filePath);
+    fstruct->contents = cl;
+    fstruct->fileptr = f1;
+
+    fclose(f1);
+
+    return *fstruct;
+}
+
 /* The main function */
 int main(int argc, char *argv[]) {
     int serverSock, clientSock;
@@ -152,52 +183,65 @@ int main(int argc, char *argv[]) {
 
     char nameBuf[BUFSIZE];
 
-    // loading files into dynamic array
+    if (argc < 3) {
+        printf("Usage: %s <directory> <file1> <file2> ... <fileN>\n", argv[0]);
+        exit(1);
+    }
+    // initializing directory
+    struct dirent *pDirent; 
+    DIR *pDir; 
+
+    // initializing file storage
     int fileStorageSize = 0;
-    file* fileStorage = (file*)malloc(fileStorageSize * sizeof(file));
+    file* fileStorage = (file*)malloc(fileStorageSize* sizeof(file));
     if (fileStorage == NULL) {
         printf("Memory allocation failed\n");
         exit(1);
     }
 
-    if (argc < 3) {
-        printf("Usage: %s <directory> <file1> <file2> ... <fileN>\n", argv[0]);
-        exit(1);
+    // opening directory
+    pDir = opendir(argv[1]);
+    if (pDir == NULL){
+        printf("directory did not open correctly");
     }
 
-    char *directory = argv[1];
-    for (int i = 2; i < argc; i++) {
-        char fullFilePath[100];  // Adjust size if necessary
-        snprintf(fullFilePath, sizeof(fullFilePath), "%s/%s", directory, argv[i]);
-
-        FILE *f = fopen(fullFilePath, "rb");
-        if (f == NULL) {
-            printf("Error opening file: %s\n", fullFilePath);
+    // looping through files in directory
+    while((pDirent = readdir(pDir)) != NULL){
+        // skip hidden files
+        if (pDirent->d_name[0] == '.') { 
             continue;
         }
+        // adding files to filestorage
+        else {
+            char path[1024];
+            snprintf(path, sizeof(path), "%s/%s", argv[1], pDirent->d_name);
 
-        long fileContents = 0;
-        int value;
-        while (fread(&value, sizeof(int), 1, f) == 1) {
-            fileContents += value;
+            file newFile = openFile(path);
+            // reallocating memory array 
+            fileStorageSize++;
+            file* temp = (file*)realloc(fileStorage, sizeof(fileStorage) + sizeof(newFile));
+            if (temp == NULL){
+                printf("Reallocation failed\n");
+                free(fileStorage);
+                return 1;
+            }
+            fileStorage = temp;
+            fileStorage[fileStorageSize-1] = newFile;
+            memset(path, 0, 1024);
         }
-
-        file *newFile = malloc(sizeof(file));
-        strcpy(newFile->name, fullFilePath);
-        newFile->contents = fileContents;
-        newFile->fileptr = f;
-
-        fileStorageSize++;
-        fileStorage = realloc(fileStorage, fileStorageSize * sizeof(file));
-        if (fileStorage == NULL) {
-            printf("Reallocation failed\n");
-            free(fileStorage);
-            exit(1);
-        }
-
-        fileStorage[fileStorageSize - 1] = *newFile;
     }
 
+    closedir(pDir);
+
+    // making sure the dynamic array works 
+    printf("\nDynamic array checking (Client Files):\n");
+    for(int i = 0; i < fileStorageSize; i++){
+      printf("Names of files: %s, Contents: %lld\n", fileStorage[i].name, fileStorage[i].contents);
+      if(fileStorage[i].fileptr != NULL){
+        printf("file is set\n");
+      }
+    }
+    
     /* Create a new TCP socket*/
     if ((serverSock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
         printf("socket failed\n");
