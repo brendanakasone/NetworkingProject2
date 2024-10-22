@@ -22,11 +22,8 @@ Running the Client:
 # How to Use
 All options are case sensitive:  
 List Files  
-- 
 Diff  
-- 
 Pull  
-- 
 Leave:  
 - closes CNT 4007 Project 2
 
