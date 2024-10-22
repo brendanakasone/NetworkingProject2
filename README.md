@@ -21,10 +21,10 @@ Running the Client:
 
 # How to Use
 All options are case sensitive:  
-List Files: list all files available on the server    
-Diff: checks for differing server and client files  
-Pull: obstains files found in diff locally   
-Leave: closes the current client  
+- List Files: list all files available on the server    
+- Diff: checks for differing server and client files  
+- Pull: obstains files found in diff locally   
+- Leave: closes the current client  
 
 # Description
 Project 2 is a file synchronization application. Multiple clients can concurrently synchronize their local files with a common, shared server. A server and client was developed to provide this functionality. 
