@@ -9,6 +9,10 @@
 
 /*Included libraries*/
 
+// fix diff so that contents are not the same 
+// update documentation 
+// figure out client history txt 
+
 #include <stdio.h>	  /* for printf() and fprintf() */
 #include <sys/socket.h>	  /* for socket(), connect(), send(), and recv() */
 #include <arpa/inet.h>	  /* for sockaddr_in and inet_addr() */
