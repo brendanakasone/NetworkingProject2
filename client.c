@@ -167,9 +167,14 @@ void handleMenu(int clientSock, file* fileStorage, int fileStorageSize, char *fo
 
         diffFiles = df;
 
+        printf("Client files: \n");
+        for(int i = 0; i < fileStorageSize; i++){
+            printf("%s\n", fileStorage[i].name);
+        }
+
         printf("Different files: \n");
         if (iter == 0){
-            printf("All files are the same");
+            printf("No different server files\n");
         }
         for(int i = 0; i < iter; i++){
             printf("%d. %s\n", i, diffFiles[i]);
