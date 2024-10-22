@@ -187,25 +187,6 @@ int main(int argc, char *argv[])
       printf("memory allocation failed\n");
     }
 
-    // // hard code for now 
-    // for (int i = 0; i < fileStorageSize; i++){
-    //   snprintf(fileStorage[i].name, sizeof(fileStorage[i].name), "File %d", i + 2);
-    //   fileStorage[i].contents = 99 + i;
-    // }
-
-    // // making sure the dynamic array works 
-    // printf("\nDynamic array checking (Client Files):\n");
-    // for(int i = 0; i < fileStorageSize; i++){
-    //   printf("Names of files: %s, Contents: %ld\n", fileStorage[i].name, fileStorage[i].contents);
-    // }
-
-    // /* Get the Student Name from the command line */
-    // if (argc < 2) 
-    // {
-    //   printf("Incorrect input format. The correct format is:\n\tnameChanger your_name\n");
-    //   exit(1);
-    // }
-
     if (argc < 2) {
         printf("Usage: ./client folder_path\n");
         exit(1);
