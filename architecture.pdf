@@ -1,0 +1,18 @@
+Project 2 Architecture Overview
+
+File Structure
+We decided to use a custom struct called “file.” This struct carries the path of the file in the char array “name,” a long long called “contents” that is used to store the sum of all the binary numbers in the file, and the ptr to the actual file being referenced. We decided to use this method because the diff method requires us to check the contents of the files when comparing (“Students must develop a means of robustly determining whether or not two files, even if named differently, contain the same content (without actually sending the entire file)”). In order to do this it is easier to compare an integer rather than open each file and compare byte by byte. This is similar to a concept that we learned in class called the checksum. Although it is not reliable 100% of the time, it is reliable enough. 
+
+File Storage
+To store the custom struct “file” we decided to use a dynamic array. A dynamic array is being used because we do not know exactly how many files will be in the directory and we want to limit the amount of space that we use. 
+
+Threading 
+To deal with multiple clients concurrently, pthreads were used. With threads, each client has a thread dedicated to themselves, clients’ states do not need to be kept, and client functionality can work independently from each other. Thus, servers are allowed to maintain multiple client communications until the client prompts itself to leave. For this to occur, a client struct was created to keep track of each client’s socket.
+
+General Plan
+First we have decided to have dynamic arrays, one for each client and one for the server. Each dynamic array will hold their respective files. We will crawl through the client/server directories and load the files into the dynamic arrays first. Then we will connect the server and its client(s). The server will then send the client the menu selection and the client will display it. 
+The List File method will go through the server dynamic array and send the path names of the server files. 
+The Diff method will call the list file command and then compare the sum of the contents of the files. The diff method will send the client the path names of the files that are different. 
+The Pull method … [Catrina]
+The Leave method will close the current client server. The method exits out of the forever while loop and is then prompted to close the client socket.
+Furthermore, there will be a file called history.txt that will store all the request messages that the client sends. 
