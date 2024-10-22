@@ -134,7 +134,7 @@ void* clientThread(void* args) {
 int main(int argc, char *argv[]) {
     int serverSock, clientSock;
     struct sockaddr_in serv_addr, clnt_addr;
-    unsigned short serverPort = 8087;
+    unsigned short serverPort = 8083;
     unsigned int clntLen;
 
     char nameBuf[BUFSIZE];

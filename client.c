@@ -211,15 +211,15 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
-
-    char *folderPath = argv[1];
+    char *folderPath;
     char fname[100];
     // opening the file
-    snprintf(fname, sizeof(fname), "%s/test1.txt", folderPath);
+    // snprintf(fname, sizeof(fname), "%s/test1.txt", folderPath);
 
-    FILE *f1 = fopen(fname, "rb");
+    FILE *f1 = fopen("clientFiles/text1.txt", "rb");
     if (f1 == NULL){
-      printf("error opening file\n");
+      printf("error opening file  lol\n");
+      return 1;
     }
     else {
       printf("test1.txt opened successsfully\n");
@@ -285,8 +285,8 @@ int main(int argc, char *argv[])
     /* Construct the server address structure */
     memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
-    serv_addr.sin_addr.s_addr = inet_addr("127.0.0.4");
-    serv_addr.sin_port = htons(8087);
+    serv_addr.sin_addr.s_addr = inet_addr("127.0.0.9");
+    serv_addr.sin_port = htons(8083);
 
     /* Establish connecction to the server */
     if(connect(clientSock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0){
