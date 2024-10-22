@@ -17,6 +17,8 @@
 #include <string.h>
 #include <openssl/evp.h>	    /* for OpenSSL EVP digest libraries/SHA256 */
 
+#include <libgen.h>
+
 /* Constants */
 #define RCVBUFSIZE 512		    /* The receive buffer size */
 #define SNDBUFSIZE 512		    /* The send buffer size */
@@ -24,9 +26,145 @@
 
 typedef struct{
     char name[50];
-    long contents;
-    FILE *fileptr; 
+    long long contents; 
+    FILE *fileptr;
 } file;
+
+typedef struct {
+    int clientSock;
+} threadArgs;
+
+void listFilesFunc(int clientSock, char rcvBuf[RCVBUFSIZE]){
+  // receiving list files 
+  recv(clientSock, rcvBuf, RCVBUFSIZE - 1, 0);
+  printf("List of Server Files:\n");
+  for(int i = 0; i < MDLEN; i++) printf("%c", rcvBuf[i]);
+  printf("\n");
+} 
+
+void *receiveMessages(void *args) {
+    threadArgs *tArgs = (threadArgs *)args;
+    int clientSock = tArgs->clientSock;
+    char rcvBuf[RCVBUFSIZE];
+    
+    while (1) {
+        memset(rcvBuf, 0, RCVBUFSIZE);
+        int bytesReceived = recv(clientSock, rcvBuf, RCVBUFSIZE - 1, 0);
+        if (bytesReceived <= 0) {
+            printf("Connection closed or error occurred\n");
+            break;
+        }
+        rcvBuf[bytesReceived] = '\0';
+        printf("Received: %s\n", rcvBuf);
+        pthread_exit(NULL);
+    }
+    
+    close(clientSock);
+    free(tArgs);
+    pthread_exit(NULL);
+}
+
+void handleMenu(int clientSock, file* fileStorage, int fileStorageSize, char *folderPath){
+    char rcvBuf[RCVBUFSIZE];
+    char sndBuf[SNDBUFSIZE];
+    char temp[25];
+
+    int bytesReceived = recv(clientSock, rcvBuf, RCVBUFSIZE - 1, 0);
+    rcvBuf[bytesReceived] = '\0';
+    printf("%s\n", rcvBuf);
+
+    fgets(temp, sizeof(temp), stdin);
+    temp[strcspn(temp, "\n")] = 0;
+    temp[24] = '\0';
+    char *menuOption = temp;
+
+    send(clientSock, menuOption, strlen(menuOption), 0);
+    memset(rcvBuf, 0, RCVBUFSIZE);
+
+    if (strcmp(menuOption, "List Files") == 0){
+        listFilesFunc(clientSock, rcvBuf);
+    } else if(strcmp(menuOption, "Diff") == 0){
+        listFilesFunc(clientSock, rcvBuf);
+
+        char clientFileList[50*fileStorageSize];
+        strcpy(clientFileList, fileStorage[0].name);
+        strcat(clientFileList, "\n");
+        for (int i = 1; i < fileStorageSize; i++){
+            strcat(clientFileList, fileStorage[i].name);
+            strcat(clientFileList, "\n");
+        }
+
+        char *token;
+        char diffFileList[50*fileStorageSize];
+        token = strtok(rcvBuf, "\n");
+        while(token != NULL){
+            const char *found = strstr(clientFileList, token);
+            if (found) {
+                printf("%s was found\n", token);
+            } else{
+                strcpy(diffFileList, token);
+                printf("%s was NOT found\n", token);
+            }
+            token = strtok(NULL, "\n");
+        }
+        printf("This is diff file: %s\n", diffFileList);
+    } else if(strcmp(menuOption, "Pull") == 0) {
+        printf("Requesting missing files from server...\n");
+
+        send(clientSock, "Pull", strlen("Pull"), 0);
+
+        for (int i = 0; i < fileStorageSize; i++) {
+            char fileName[100];
+            memset(fileName, 0, sizeof(fileName));
+            int bytesReceived = recv(clientSock, fileName, sizeof(fileName) - 1, 0);
+            if (bytesReceived <= 0) {
+                printf("No more files to receive or error occurred.\n");
+                break;
+            }
+
+            fileName[bytesReceived] = '\0';
+            printf("Receiving file: %s\n", fileName);
+
+            char *baseFileName = basename(fileName);
+            printf("Extracted base file name: %s\n", baseFileName);
+
+            long fileSize;
+            recv(clientSock, &fileSize, sizeof(fileSize), 0);
+            printf("File size: %ld bytes\n", fileSize);
+
+            char fullFilePath[100];
+            if (folderPath[(strlen(folderPath) - 1)] != '/') {
+                snprintf(fullFilePath, sizeof(fullFilePath), "%s/%s", folderPath, baseFileName);
+            } else {
+                snprintf(fullFilePath, sizeof(fullFilePath), "%s%s", folderPath, baseFileName);
+            }
+
+            // open file in write mode
+            FILE *f = fopen(fullFilePath, "wb");
+            if (f == NULL) {
+                printf("Error opening file to write: %s\n", fullFilePath);
+                continue;
+            }
+
+            long totalReceived = 0; 
+            char fileBuffer[RCVBUFSIZE];
+            while(totalReceived < fileSize) {
+                bytesReceived = recv(clientSock, fileBuffer, sizeof(fileBuffer), 0);
+                fwrite(fileBuffer, 1, bytesReceived, f);
+                totalReceived += bytesReceived;
+            }
+
+            fclose(f);
+            printf("File received successfully.\n");
+        }
+    } else if (strcmp(menuOption, "Leave") == 0) {
+        printf("Leaving the server...\n");
+        close(clientSock);
+        exit(0);
+    } else {
+        printf("Invalid option. Please try again!\n");
+    }
+}
 
 /* The main function */
 int main(int argc, char *argv[])
@@ -41,13 +179,101 @@ int main(int argc, char *argv[])
     
     int i;			    /* Counter Value */
 
-    /* Get the Student Name from the command line */
-    if (argc != 2) 
-    {
-	printf("Incorrect input format. The correct format is:\n\tnameChanger your_name\n");
-	exit(1);
+    /* File Storage */
+    int fileStorageSize = 0;
+    file* fileStorage = (file*)malloc(fileStorageSize * sizeof(file));
+
+    if (fileStorage == NULL){
+      printf("memory allocation failed\n");
     }
-    studentName = argv[1];
+
+    // // hard code for now 
+    // for (int i = 0; i < fileStorageSize; i++){
+    //   snprintf(fileStorage[i].name, sizeof(fileStorage[i].name), "File %d", i + 2);
+    //   fileStorage[i].contents = 99 + i;
+    // }
+
+    // // making sure the dynamic array works 
+    // printf("\nDynamic array checking (Client Files):\n");
+    // for(int i = 0; i < fileStorageSize; i++){
+    //   printf("Names of files: %s, Contents: %ld\n", fileStorage[i].name, fileStorage[i].contents);
+    // }
+
+    // /* Get the Student Name from the command line */
+    // if (argc < 2) 
+    // {
+    //   printf("Incorrect input format. The correct format is:\n\tnameChanger your_name\n");
+    //   exit(1);
+    // }
+
+    if (argc < 2) {
+        printf("Usage: ./client folder_path\n");
+        exit(1);
+    }
+
+
+    char *folderPath = argv[1];
+    char fname[100];
+    // opening the file
+    snprintf(fname, sizeof(fname), "%s/test1.txt", folderPath);
+
+    FILE *f1 = fopen(fname, "rb");
+    if (f1 == NULL){
+      printf("error opening file\n");
+    }
+    else {
+      printf("test1.txt opened successsfully\n");
+    }
+
+    // adding binary file together for contents
+    int v; 
+    long long cl = 0; 
+    size_t readCount1; 
+    // loops through the file and adds the contents of the file together
+    while((readCount1 = fread(&v, sizeof(int), 1, f1)) == 1){
+      cl += v;
+    }
+
+    printf("Here are the values to everything: %lld\n", cl);
+
+    // char fname[] = "clientFiles/test1.txt";
+
+    // creating new struct
+    file *fstruct = malloc(sizeof(file));
+    if (fstruct == NULL) {
+        perror("Failed to allocate memory for file structure");
+        exit(EXIT_FAILURE);
+    }
+    strcpy(fstruct->name, fname);
+    fstruct->contents = cl;
+    fstruct->fileptr = f1;
+
+    fclose(f1);
+
+    // reallocating memory array 
+    fileStorageSize++;
+    file* fs = (file*)realloc(fileStorage, (fileStorageSize + 1) * sizeof(file)); // Correct reallocation size
+    if (fs == NULL){
+      printf("Reallocation failed\n");
+      free(fileStorage);
+      return 1;
+    }
+    fileStorage = fs;
+
+    // adding new struct to the array
+    fileStorage[fileStorageSize-1] = *fstruct;
+    free(fstruct);
+
+    // making sure the dynamic array works 
+    printf("\nDynamic array checking (Client Files):\n");
+    for(int i = 0; i < fileStorageSize; i++){
+      printf("Names of files: %s, Contents: %lld\n", fileStorage[i].name, fileStorage[i].contents);
+      if(fileStorage[i].fileptr != NULL){
+        printf("file is set");
+      }
+    }
+
+    // clearing memory 
     memset(&sndBuf, 0, RCVBUFSIZE);
     memset(&rcvBuf, 0, RCVBUFSIZE);
 
@@ -59,66 +285,79 @@ int main(int argc, char *argv[])
     /* Construct the server address structure */
     memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
-    serv_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
-    serv_addr.sin_port = htons(8080);
+    serv_addr.sin_addr.s_addr = inet_addr("127.0.0.4");
+    serv_addr.sin_port = htons(8087);
 
     /* Establish connecction to the server */
     if(connect(clientSock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0){
         printf("connect failed\n");
     };
 
-    /* Send the string to the server */
-    if(send(clientSock, studentName, strlen(studentName), 0) < 0){
-        printf("send failed\n");
-    };
-
-    /* Receive and print response from the server */
-    int bytesReceived = recv(clientSock, rcvBuf, RCVBUFSIZE - 1, 0);
-    char clientPrompt[400];
-    rcvBuf[bytesReceived] = '\0';
-    for(i = 0; i < MDLEN; i++){
-      printf("%c", rcvBuf[i]);
-      clientPrompt[i] = rcvBuf[i];
+    while (1) {
+        handleMenu(clientSock, fileStorage, fileStorageSize, folderPath);
     }
-    printf("\n");
+    // // START OF SENDING/RECEIVING MESSAGES: 
 
-    /* getting user menu selection from terminal */
-    char temp[25];
-    fgets(temp, sizeof(temp), stdin);
-    temp[strcspn(temp, "\n")] = 0;
-    temp[24] = '\0';
-    char *menuOption = temp;
+    // /* receiving menu options */
+    // int bytesReceived = recv(clientSock, rcvBuf, RCVBUFSIZE - 1, 0);
+    // rcvBuf[bytesReceived] = '\0';
+    // for(i = 0; i < MDLEN; i++) printf("%c", rcvBuf[i]);
+    // printf("\n");
 
-    /* send user menu selection to server */
-    send(clientSock, menuOption, strlen(menuOption), 0);
+    // /* getting user menu selection from terminal */
+    // char temp[25];
+    // fgets(temp, sizeof(temp), stdin);
+    // temp[strcspn(temp, "\n")] = 0;
+    // temp[24] = '\0';
+    // char *menuOption = temp;
 
-    memset(rcvBuf, 0, RCVBUFSIZE);
+    // /* send user menu selection to server */
+    // send(clientSock, menuOption, strlen(menuOption), 0);
 
-    menuOption[strcspn(menuOption, "\n")] = 0; 
+    // /*clearing rcvBuf*/
+    // memset(rcvBuf, 0, RCVBUFSIZE);
 
-    while (strcmp(menuOption, "Leave") != 0)
-    {
-        // receiving list of files
-        recv(clientSock, rcvBuf, RCVBUFSIZE - 1, 0);
-        printf("List of Files:\n");
-        for(i = 0; i < MDLEN; i++) printf("%c", rcvBuf[i]);
-        printf("\n");
+    // /*if list files is called*/
+    // if (strcmp(menuOption, "List Files") == 0){
+    //   listFilesFunc(clientSock, rcvBuf);
+    // }
+    // /*if diff is called*/
+    // else if(strcmp(menuOption, "Diff") == 0){
+    //   // calling list files for server files
+    //   listFilesFunc(clientSock, rcvBuf);
 
-        // reprompting user for new selection
-        printf("%s", clientPrompt);
-        printf("\n");
-        memset(temp, 0, sizeof(temp));
-        memset(menuOption, 0, strlen(menuOption));
-        fgets(temp, sizeof(temp), stdin);
-        temp[strcspn(temp, "\n")] = 0;
-        temp[24] = '\0';
-        menuOption = temp;
+    //   // getting full list of client files
+    //   char clientFileList[50*fileStorageSize];
+    //   strcpy(clientFileList, fileStorage[0].name);
+    //   strcat(clientFileList, "\n");
+    //   for (int i = 1; i < fileStorageSize; i++){
+    //     strcat(clientFileList, fileStorage[i].name);
+    //     strcat(clientFileList, "\n");
+    //   }
 
-        // sending new selection to server 
-        send(clientSock, menuOption, strlen(menuOption), 0);
+    //   // comparing file names and creating a new diff file list 
+    //   char *token; 
+    //   char diffFileList[50*fileStorageSize];
+    //   token = strtok(rcvBuf, "\n");
+    //   while(token != NULL){
+    //     const char *found = strstr(clientFileList, token);
+    //     if (found) {
+    //       printf("%s was found\n", token);
+    //     }
+    //     else{
+    //       strcpy(diffFileList, token);
+    //       printf("%s was NOT found\n", token);
+    //     }
+    //     token = strtok(NULL, "\n");
+    //   }
+    //   printf("This is diff file: %s\n", diffFileList);
 
-    }
+    //   memset(clientFileList, 0, sizeof(clientFileList));
+    //   memset(diffFileList, 0, sizeof(diffFileList));
+    // }
 
     close(clientSock);
+    free(fileStorage);
+    
     return 0;
 }

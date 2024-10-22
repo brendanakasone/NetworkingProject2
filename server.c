@@ -16,118 +16,219 @@
 #include <unistd.h>	  /* for close() */
 #include <string.h>	  /* support any string ops */
 #include <openssl/evp.h>  /* for OpenSSL EVP digest libraries/SHA256 */
+#include <pthread.h>
 
 #define RCVBUFSIZE 512		/* The receive buffer size */
 #define SNDBUFSIZE 512		/* The send buffer size */
-#define BUFSIZE 40		/* Your name can be as many as 40 chars*/
+#define BUFSIZE 40		    /* Your name can be as many as 40 chars */
 
-typedef struct{
+typedef struct {
     char name[50];
     long contents; 
-    FILE *fileptr; 
+    FILE *fileptr;
 } file;
 
-/* The main function */
-int main(int argc, char *argv[])
-{
-    int serverSock;				/* Server Socket */
-    int clientSock;				/* Client Socket */
-    struct sockaddr_in changeServAddr;		/* Local address */
-    struct sockaddr_in changeClntAddr;		/* Client address */
-    unsigned short changeServPort;		/* Server port */
-    unsigned int clntLen;			/* Length of address data struct */
+typedef struct {
+    int clientSock;
+    int fileStorageSize;
+    file* fileStorage;
+} clientThreadArgs;
 
-    char nameBuf[BUFSIZE];			/* Buff to store name from client */
-    unsigned char md_value[EVP_MAX_MD_SIZE];	/* Buff to store change result */
-    EVP_MD_CTX *mdctx;				/* Digest data structure declaration */
-    const EVP_MD *md;				/* Digest data structure declaration */
-    int md_len;					/* Digest data structure size tracking */
-
-    /* Create a new TCP socket*/
-    if ((serverSock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0){
-        printf("socket failed\n");
-    };
-
-    /* Construct local address structure*/
-    memset(&changeServAddr, 0, sizeof(changeServAddr));
-    changeServAddr.sin_family = AF_INET;
-    changeServAddr.sin_addr.s_addr = htonl(INADDR_ANY);
-    changeServAddr.sin_port = htons(9090);
-    
-    /* Bind to local address structure */
-    if (bind(serverSock, (struct sockaddr *)&changeServAddr, sizeof(changeServAddr)) < 0){
-      printf("bind failed\n");
-    };
-
-    /* Listen for incoming connections */
-    if(listen(serverSock, 10) < 0){
-      printf("listen failed\n");
-    };
-
-    /* Loop server forever*/
-    while(1)
-    {
-      printf("Looped");
-      clntLen = sizeof(changeClntAddr);
-	    /* Accept incoming connection */
-      if((clientSock = accept(serverSock, (struct sockaddr *)&changeClntAddr, &clntLen)) < 0){
-        printf("accept failed\n");
-      };
-
-	    /* Extract Your Name from the packet, store in nameBuf */
-      int bytesReceived = recv(clientSock, nameBuf, BUFSIZE - 1, 0); 
-      nameBuf[bytesReceived] = '\0'; 
-      // for(int i = 0; i < BUFSIZE; i++) printf("%c", nameBuf[i]);
-      // printf("\n");
-      nameBuf[strcspn(nameBuf, "\n")] = 0; 
-
-      if (strcmp(nameBuf, "List Files") == 0) 
-      {
-        size_t sizeOfFileNames = 0;
-        for(int i = 0; i < fileStorageSize; i++){
-          sizeOfFileNames = sizeOfFileNames + strlen(fileStorage[i].name + 5);
-        }
-        char *allFileNames = (char *)malloc(sizeOfFileNames * sizeof(char));
-        strcpy(allFileNames, fileStorage[0].name);
-        for(int i = 1; i < fileStorageSize; i++){
-          strcat(allFileNames, "\n");
-          strcat(allFileNames, fileStorage[i].name);
-        }
-
-        send(clientSock, allFileNames, strlen(allFileNames), 0);
-        printf("Successfully received List Files\n");
-      } 
-      else if (strcmp(nameBuf, "Diff") == 0)
-      {
-        printf("Successfully received Diff\n");
-      }
-      else if (strcmp(nameBuf, "Pull") == 0)
-      {
-        printf("Successfully received Pull\n");
-      }
-      else if (strcmp(nameBuf, "Leave") == 0)
-      {
-        printf("Successfully received Leave\n");
-        leave = 1;
-      }
-      else 
-      {
-        printf("Please retry!\n");
-      }
-
-      // receiving new user option
-      memset(nameBuf, 0, BUFSIZE);
-      recv(clientSock, nameBuf, BUFSIZE - 1, 0); 
-      nameBuf[bytesReceived] = '\0';
-      nameBuf[strcspn(nameBuf, "\n")] = 0; 
-      printf("Second command received\n");
-      for(int i = 0; i < BUFSIZE; i++) printf("%c", nameBuf[i]);
-      printf("\n"); 
-      continue;
-      
+/* Function to send a list of files to the client */
+void listFilesFunc(int fileStorageSize, file* fileStorage, int clientSock) {
+    size_t sizeOfFileNames = 0;
+    for (int i = 0; i < fileStorageSize; i++) {
+        sizeOfFileNames += strlen(fileStorage[i].name);
     }
-    free(fileStorage);
+
+    char *allFileNames = (char *)malloc((sizeOfFileNames + fileStorageSize) * sizeof(char));
+    if (allFileNames == NULL) {
+        printf("Memory allocation failed for allFileNames\n");
+        exit(1);
+    }
+
+    strcpy(allFileNames, fileStorage[0].name);
+    for (int i = 1; i < fileStorageSize; i++) {
+        strcat(allFileNames, "\n");
+        strcat(allFileNames, fileStorage[i].name);
+    }
+
+    send(clientSock, allFileNames, strlen(allFileNames), 0);
+    printf("Successfully sent server files\n");
+    free(allFileNames);
+}
+
+/* Function to handle the menu options for the client */
+void handleClientMenu(int clientSock, int fileStorageSize, file* fileStorage) {
+    char nameBuf[BUFSIZE];
+
+    while (1) {
+        char *message = "Please pick one of the following options:\n1. List Files\n2. Diff\n3. Pull\n4. Leave";
+        send(clientSock, message, strlen(message), 0);
+
+        int bytesReceived = recv(clientSock, nameBuf, BUFSIZE - 1, 0);
+        if (bytesReceived < 0) {
+            fprintf(stderr, "Failed to receive data from client\n");
+            break;
+        }
+        nameBuf[bytesReceived] = '\0';
+        printf("Client selected: %s\n", nameBuf);
+
+        nameBuf[strcspn(nameBuf, "\n")] = 0;
+
+        if (strcmp(nameBuf, "List Files") == 0) {
+            listFilesFunc(fileStorageSize, fileStorage, clientSock);
+        } else if (strcmp(nameBuf, "Diff") == 0) {
+            listFilesFunc(fileStorageSize, fileStorage, clientSock);  // Placeholder for diff functionality
+            printf("Successfully received Diff\n");
+        } else if (strcmp(nameBuf, "Pull") == 0) {
+            printf("Client requested to pull files.\n");
+
+            for (int i = 0; i < fileStorageSize; i++) {
+                send(clientSock, fileStorage[i].name, strlen(fileStorage[i].name), 0);
+
+                FILE *file = fopen(fileStorage[i].name, "rb");
+                if (file == NULL) {
+                    printf("Error opening file: %s\n", fileStorage[i].name);
+                    continue;
+                }
+
+                fseek(file, 0, SEEK_END);
+                long fileSize = ftell(file);
+                rewind(file);
+
+                send(clientSock, &fileSize, sizeof(fileSize), 0);
+
+                char fileBuffer[SNDBUFSIZE];
+                int bytesRead;
+                while ((bytesRead = fread(fileBuffer, 1, sizeof(fileBuffer), file)) > 0) {
+                    send(clientSock, fileBuffer, bytesRead, 0);
+                }
+                fclose(file);
+                printf("File %s sent to client.\n", fileStorage[i].name);
+            }
+            printf("All files sent to client.\n");
+        } else if (strcmp(nameBuf, "Leave") == 0) {
+            printf("Client has chosen to leave.\n");
+            break;
+        } else {
+            printf("Invalid option. Please retry!\n");
+        }
+    }
     close(clientSock);
+}
+
+void* clientThread(void* args) {
+    clientThreadArgs* clientArgs = (clientThreadArgs*)args;
+    int clientSock = clientArgs->clientSock;
+    int fileStorageSize = clientArgs->fileStorageSize;
+    file* fileStorage = clientArgs->fileStorage;
+
+    handleClientMenu(clientSock, fileStorageSize, fileStorage);
+
+    free(clientArgs);
+    pthread_exit(NULL);
+}
+
+/* The main function */
+int main(int argc, char *argv[]) {
+    int serverSock, clientSock;
+    struct sockaddr_in serv_addr, clnt_addr;
+    unsigned short serverPort = 8087;
+    unsigned int clntLen;
+
+    char nameBuf[BUFSIZE];
+
+    int fileStorageSize = 0;
+    file* fileStorage = (file*)malloc(fileStorageSize * sizeof(file));
+    if (fileStorage == NULL) {
+        printf("Memory allocation failed\n");
+        exit(1);
+    }
+
+    if (argc < 3) {
+        printf("Usage: %s <directory> <file1> <file2> ... <fileN>\n", argv[0]);
+        exit(1);
+    }
+
+    char *directory = argv[1];
+    for (int i = 2; i < argc; i++) {
+        char fullFilePath[100];  // Adjust size if necessary
+        snprintf(fullFilePath, sizeof(fullFilePath), "%s/%s", directory, argv[i]);
+
+        FILE *f = fopen(fullFilePath, "rb");
+        if (f == NULL) {
+            printf("Error opening file: %s\n", fullFilePath);
+            continue;
+        }
+
+        long fileContents = 0;
+        int value;
+        while (fread(&value, sizeof(int), 1, f) == 1) {
+            fileContents += value;
+        }
+
+        file *newFile = malloc(sizeof(file));
+        strcpy(newFile->name, fullFilePath);
+        newFile->contents = fileContents;
+        newFile->fileptr = f;
+
+        fileStorageSize++;
+        fileStorage = realloc(fileStorage, fileStorageSize * sizeof(file));
+        if (fileStorage == NULL) {
+            printf("Reallocation failed\n");
+            free(fileStorage);
+            exit(1);
+        }
+
+        fileStorage[fileStorageSize - 1] = *newFile;
+    }
+
+    if ((serverSock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
+        printf("socket failed\n");
+        exit(1);
+    }
+
+    memset(&serv_addr, 0, sizeof(serv_addr));
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    serv_addr.sin_port = htons(serverPort);
+
+    if (bind(serverSock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
+        printf("bind failed\n");
+        exit(1);
+    }
+
+    if (listen(serverSock, 10) < 0) {
+        printf("listen failed\n");
+        exit(1);
+    }
+
+    while (1) {
+        clntLen = sizeof(clnt_addr);
+        if ((clientSock = accept(serverSock, (struct sockaddr *)&clnt_addr, &clntLen)) < 0) {
+            printf("accept failed\n");
+            continue;
+        }
+
+        printf("Client connected.\n");
+
+        clientThreadArgs *clientArgs = malloc(sizeof(clientThreadArgs));
+        clientArgs->clientSock = clientSock;
+        clientArgs->fileStorageSize = fileStorageSize;
+        clientArgs->fileStorage = fileStorage;
+
+        pthread_t threadID;
+        if (pthread_create(&threadID, NULL, clientThread, (void*)clientArgs) != 0) {
+            printf("Failed to create thread\n");
+        } else {
+            printf("Thread created for client\n");
+        }
+
+        pthread_detach(threadID);
+    }
+
+    free(fileStorage);
     close(serverSock);
 
     return 0;
