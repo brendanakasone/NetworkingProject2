@@ -194,14 +194,16 @@ file openFile(char* filePath){
     printf("Here are the values to everything: %lld\n", cl);
 
     // creating a new file struct
-    file *fstruct = malloc(sizeof(f1) + sizeof(filePath) + sizeof(cl)); 
-    strcpy(fstruct->name, filePath);
-    fstruct->contents = cl;
-    fstruct->fileptr = f1;
+    file fstruct; 
+    strcpy(fstruct.name, filePath);
+    fstruct.contents = cl;
+    fstruct.fileptr = f1;
+
+    printf("Values after struct created: %lld\n", cl);
 
     fclose(f1);
 
-    return *fstruct;
+    return fstruct;
 }
 
 /* The main function */
@@ -249,9 +251,10 @@ int main(int argc, char *argv[])
             snprintf(path, sizeof(path), "%s/%s", argv[1], pDirent->d_name);
 
             file newFile = openFile(path);
+            printf("new file: %s, %lld\n", newFile.name, newFile.contents);
             // reallocating memory array 
             fileStorageSize++;
-            file* temp = (file*)realloc(fileStorage, sizeof(fileStorage) + sizeof(newFile));
+            file* temp = (file*)realloc(fileStorage, fileStorageSize * sizeof(file));
             if (temp == NULL){
                 printf("Reallocation failed\n");
                 free(fileStorage);
@@ -259,7 +262,7 @@ int main(int argc, char *argv[])
             }
             fileStorage = temp;
             fileStorage[fileStorageSize-1] = newFile;
-            memset(path, 0, 1024);
+            memset(path, 0, 1024);            
         }
     }
 
@@ -287,7 +290,7 @@ int main(int argc, char *argv[])
     memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_addr.s_addr = inet_addr("127.0.0.9");
-    serv_addr.sin_port = htons(8083);
+    serv_addr.sin_port = htons(8081);
 
     /* Establish connecction to the server */
     if(connect(clientSock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0){

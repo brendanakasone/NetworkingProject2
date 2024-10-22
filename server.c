@@ -164,21 +164,23 @@ file openFile(char* filePath){
     printf("Here are the values to everything: %lld\n", cl);
 
     // creating a new file struct
-    file *fstruct = malloc(sizeof(f1) + sizeof(filePath) + sizeof(cl)); 
-    strcpy(fstruct->name, filePath);
-    fstruct->contents = cl;
-    fstruct->fileptr = f1;
+    file fstruct; 
+    strcpy(fstruct.name, filePath);
+    fstruct.contents = cl;
+    fstruct.fileptr = f1;
+
+    printf("Values after struct created: %lld\n", cl);
 
     fclose(f1);
 
-    return *fstruct;
+    return fstruct;
 }
 
 /* The main function */
 int main(int argc, char *argv[]) {
     int serverSock, clientSock;
     struct sockaddr_in serv_addr, clnt_addr;
-    unsigned short serverPort = 8083;
+    unsigned short serverPort = 8081;
     unsigned int clntLen;
 
     char nameBuf[BUFSIZE];
@@ -219,7 +221,7 @@ int main(int argc, char *argv[]) {
             file newFile = openFile(path);
             // reallocating memory array 
             fileStorageSize++;
-            file* temp = (file*)realloc(fileStorage, sizeof(fileStorage) + sizeof(newFile));
+            file* temp = (file*)realloc(fileStorage, fileStorageSize * sizeof(file));
             if (temp == NULL){
                 printf("Reallocation failed\n");
                 free(fileStorage);
@@ -241,7 +243,7 @@ int main(int argc, char *argv[]) {
         printf("file is set\n");
       }
     }
-    
+
     /* Create a new TCP socket*/
     if ((serverSock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
         printf("socket failed\n");
