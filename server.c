@@ -1,8 +1,8 @@
 /*///////////////////////////////////////////////////////////
 *
 * FILE:		server.c
-* AUTHOR:	Brenda Nakasone
-* PROJECT:	CNT 4007 Project 1 - Professor Traynor
+* AUTHOR:	Brenda Nakasone and Catrina Lim
+* PROJECT:	CNT 4007 Project 2 - Professor Traynor
 * DESCRIPTION:	Network Server Code
 *
 *////////////////////////////////////////////////////////////

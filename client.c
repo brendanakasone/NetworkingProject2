@@ -1,8 +1,8 @@
 /*///////////////////////////////////////////////////////////
 *
 * FILE:		client.c
-* AUTHOR:	Brenda Nakasone
-* PROJECT:	CNT 4007 Project 1 - Professor Traynor
+* AUTHOR:	Brenda Nakasone and Catrina Lim
+* PROJECT:	CNT 4007 Project 2 - Professor Traynor
 * DESCRIPTION:	Network Client Code
 *
 *////////////////////////////////////////////////////////////
@@ -176,6 +176,10 @@ void handleMenu(int clientSock, file* fileStorage, int fileStorageSize, char *fo
         }
     } 
     else if(strcmp(menuOption, "Pull") == 0) {
+        // use diffFiles to request the missing files from the server 
+        // recv files
+        // create new file storage and add them to the local
+
         printf("Requesting missing files from server...\n");
 
         send(clientSock, "Pull", strlen("Pull"), 0);
